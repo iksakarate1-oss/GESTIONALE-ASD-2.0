@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestione Volontari - ASD</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #0b1120; color: white; min-height: 100vh; font-family: sans-serif; }
+        .glass { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; color: black !important; }
+            .glass { background: white !important; border: none !important; }
+        }
+    </style>
+</head>
+<body class="p-6">
+    <div class="max-w-6xl mx-auto">
+        <div class="flex justify-between items-center mb-8 no-print">
+            <a href="index.html" class="text-slate-400 hover:text-white">← Torna alla Dashboard</a>
+            <div class="flex gap-4">
+                <label class="bg-blue-600 px-4 py-2 rounded-lg font-bold hover:bg-blue-500 transition cursor-pointer flex items-center gap-2">
+                    📂 Importa Anagrafica
+                    <input type="file" id="import-file" accept=".json,.csv,.txt" class="hidden" onchange="importaAnagrafica(event)">
+                </label>
+                <button onclick="stampaRegistro()" class="bg-emerald-600 px-6 py-2 rounded-lg font-bold hover:bg-emerald-500 transition">Esporta Registro</button>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-4 mb-8">
+            <img id="asdLogoImg" src="logo.png" alt="Logo ASD" class="h-12 w-12 object-contain rounded-xl" onerror="this.style.display='none'">
+            <h1 id="headerTitolo" class="text-3xl font-black italic text-blue-400">Gestione Volontari & Compensi</h1>
+        </div>
+        
+        <!-- Form Aggiunta/Modifica -->
+        <div class="glass p-6 rounded-2xl mb-8 no-print">
+            <h2 id="form-title" class="font-bold mb-4 text-slate-300">Nuovo Volontario / Gestione Compenso</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <input type="hidden" id="v-id">
+                
+                <!-- Tendina Selezione Volontario -->
+                <div class="col-span-2">
+                    <select id="v-seleziona-volontario" onchange="selezionaVolontarioDaTendina()" class="w-full bg-slate-900 p-3 rounded-lg border border-white/10 outline-none focus:border-blue-500 uppercase text-white font-bold">
+                        <option value="">-- SELEZIONA O CERCA VOLONTARIO --</option>
+                    </select>
+                </div>
+
+                <input type="text" id="v-cf" placeholder="Codice Fiscale" class="bg-slate-900 p-3 rounded-lg border border-white/10 outline-none focus:border-blue-500 uppercase" maxlength="16">
+                <input type="date" id="v-nascita" class="bg-slate-900 p-3 rounded-lg border border-white/10 outline-none focus:border-blue-500 text-slate-400">
+                <input type="text" id="v-luogo-nascita" placeholder="Luogo di Nascita" class="col-span-2 bg-slate-900 p-3 rounded-lg border border-white/10 outline-none focus:border-blue-500 uppercase">
+                
+                <input type="text" id="v-via" placeholder="Via/Piazza" class="col-span-2 bg-slate-900 p-3 rounded-lg border border-white/10 outline-none focus:border-blue-500 uppercase">
+                <input type="text" id="v-civico" placeholder="N. Civico" class="bg-slate-900 p-3 rounded-lg border border-white/10 outline-none focus:border-blue-500 uppercase">
+                <input type="text" id="v-cap" placeholder="CAP" class="bg-slate-900 p-3 rounded-lg border border-white/10 outline-none focus:border-blue-500">
+                
+                <input type="text" id="v-comune" placeholder="Comune" class="bg-slate-900 p-3 rounded-lg border border-white/10 outline-none focus:border-blue-500 uppercase">
+                <input type="text" id="v-provincia" placeholder="Provincia (Sigla)" class="bg-slate-900 p-3 rounded-lg border border-white/10 outline-none focus:border-blue-500 uppercase" maxlength="2">
+                <input type="tel" id="v-tel" placeholder="Telefono" class="bg-slate-900 p-3 rounded-lg border border-white/10 outline-none focus:border-blue-500">
+                <input type="text" id="v-ruolo" placeholder="Ruolo Specifico" class="bg-slate-900 p-3 rounded-lg border border-white/10 outline-none focus:border-blue-500 uppercase" value="VOLONTARIO">
+                
+                <input type="number" id="v-compenso" placeholder="Compenso / Rimborso (€)" step="0.01" class="bg-slate-900 p-3 rounded-lg border border-white/10 outline-none focus:border-blue-500 font-bold text-emerald-400">
+                <input type="date" id="v-data-compenso" class="col-span-2 bg-slate-900 p-3 rounded-lg border border-white/10 outline-none focus:border-blue-500 text-slate-400">
+            </div>
+            <button id="save-btn" onclick="salvaVolontario()" class="mt-6 w-full bg-blue-600 py-3 rounded-lg font-bold hover:bg-blue-500 transition uppercase">SALVA E REGISTRA COMPENSO</button>
+            <button id="cancel-btn" onclick="annullaModifica()" class="hidden mt-2 w-full bg-slate-700 py-2 rounded-lg text-sm hover:bg-slate-600 transition">Annulla Modifica</button>
+        </div>
+
+        <!-- Lista Volontari -->
+        <div class="glass rounded-2xl overflow-x-auto no-print">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-slate-900/50 text-xs uppercase text-slate-400">
+                    <tr>
+                        <th class="p-4">Anagrafica</th>
+                        <th class="p-4">Residenza</th>
+                        <th class="p-4">Ruolo / Compenso</th>
+                        <th class="p-4">Data Pagam.</th>
+                        <th class="p-4 text-center">Azioni</th>
+                    </tr>
+                </thead>
+                <tbody id="lista-volontari" class="divide-y divide-white/5"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        window.onload = function() {
+            caricaConfigurazioneAsd();
+            sincronizzaEInizializza();
+        };
+
+        function caricaConfigurazioneAsd() {
+            const config = JSON.parse(localStorage.getItem('asd_config')) || JSON.parse(localStorage.getItem('config_asd')) || {};
+            if (config.nome) {
+                document.getElementById('headerTitolo').innerText = `Gestione Volontari & Compensi - ${config.nome}`;
+            }
+            if (config.logo) {
+                const logoImg = document.getElementById('asdLogoImg');
+                logoImg.src = config.logo;
+                logoImg.style.display = 'block';
+            }
+        }
+
+        function aggiornaTendinaVolontari(listaVolontari, idSelezionato = '') {
+            const select = document.getElementById('v-seleziona-volontario');
+            select.innerHTML = '<option value="">-- SELEZIONA O CERCA VOLONTARIO --</option>';
+            
+            listaVolontari.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v.id;
+                opt.textContent = `${v.nome} (CF: ${v.cf || 'N/D'})`;
+                if(String(v.id) === String(idSelezionato)) {
+                    opt.selected = true;
+                }
+                select.appendChild(opt);
+            });
+        }
+
+        function selezionaVolontarioDaTendina() {
+            const idSelezionato = document.getElementById('v-seleziona-volontario').value;
+            if(!idSelezionato) return;
+
+            const lista = JSON.parse(localStorage.getItem('asd_volontari')) || [];
+            const v = lista.find(x => String(x.id) === String(idSelezionato));
+            if(!v) return;
+
+            document.getElementById('v-id').value = v.id || '';
+            document.getElementById('v-cf').value = v.cf || '';
+            document.getElementById('v-nascita').value = v.nascita || '';
+            document.getElementById('v-luogo-nascita').value = v.luogoNascita || '';
+            document.getElementById('v-via').value = v.via || '';
+            document.getElementById('v-civico').value = v.civico || '';
+            document.getElementById('v-cap').value = v.cap || '';
+            document.getElementById('v-comune').value = v.comune || '';
+            document.getElementById('v-provincia').value = v.provincia || '';
+            document.getElementById('v-tel').value = v.tel || '';
+            document.getElementById('v-ruolo').value = v.ruolo || 'VOLONTARIO';
+            document.getElementById('v-compenso').value = v.compenso || '';
+            document.getElementById('v-data-compenso').value = v.dataCompenso || '';
+        }
+
+        function sincronizzaEInizializza() {
+            let soci = JSON.parse(localStorage.getItem('asd_soci')) || [];
+            let volontariLocal = JSON.parse(localStorage.getItem('asd_volontari')) || [];
+
+            let volontariDaSoci = soci.filter(s => s.ruolo === 'VOLONTARIO').map(s => {
+                let matchEsistente = volontariLocal.find(v => String(v.id) === String(s.id) || (v.cf && s.cf && v.cf === s.cf));
+                return {
+                    id: s.id || Date.now() + Math.random(),
+                    nome: `${s.cognome || ''} ${s.nome || ''}`.trim(),
+                    cf: s.cf || '',
+                    nascita: s.dataNascita || '',
+                    luogoNascita: s.luogoNascita || '',
+                    via: s.indirizzo || '',
+                    civico: s.numeroCivico || '',
+                    cap: s.cap || '',
+                    comune: s.comune || '',
+                    provincia: s.provincia || '',
+                    tel: s.cell || '',
+                    ruolo: s.altroRuolo || 'VOLONTARIO',
+                    compenso: matchEsistente ? matchEsistente.compenso : 0,
+                    dataCompenso: matchEsistente ? matchEsistente.dataCompenso : ''
+                };
+            });
+
+            volontariLocal.forEach(v => {
+                if (!volontariDaSoci.some(item => (v.cf && item.cf && v.cf === item.cf) || (v.id && item.id && v.id === v.id))) {
+                    volontariDaSoci.push(v);
+                }
+            });
+
+            localStorage.setItem('asd_volontari', JSON.stringify(volontariDaSoci));
+            aggiornaTendinaVolontari(volontariDaSoci);
+            render();
+        }
+
+        function render() {
+            const lista = JSON.parse(localStorage.getItem('asd_volontari')) || [];
+            const tbody = document.getElementById('lista-volontari');
+            tbody.innerHTML = '';
+            
+            if(lista.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-500 uppercase text-xs font-bold">Nessun volontario registrato o sincronizzato</td></tr>`;
+                return;
+            }
+
+            lista.forEach((v, index) => {
+                let dataTabella = '-';
+                if(v.dataCompenso) {
+                    const parti = v.dataCompenso.split('-');
+                    if(parti.length === 3) dataTabella = `${parti[2]}/${parti[1]}/${parti[0]}`;
+                }
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-white/5">
+                        <td class="p-4">
+                            <div class="font-bold uppercase">${v.nome}</div>
+                            <div class="text-xs text-slate-400 uppercase">CF: ${v.cf}</div>
+                        </td>
+                        <td class="p-4 text-xs text-slate-300 uppercase">
+                            ${v.via || ''} ${v.civico || ''}<br>${v.comune || ''} (${v.provincia || ''})
+                        </td>
+                        <td class="p-4">
+                            <div class="text-blue-300 font-bold uppercase">${v.ruolo || 'VOLONTARIO'}</div>
+                            <div class="text-emerald-400 font-mono">€ ${parseFloat(v.compenso || 0).toFixed(2)}</div>
+                        </td>
+                        <td class="p-4 text-slate-300">${dataTabella}</td>
+                        <td class="p-4 flex gap-2 justify-center">
+                            <button onclick="editVolontario(${index})" class="text-yellow-400 hover:text-yellow-300 text-xs font-bold">MODIFICA</button>
+                            <button onclick="generaRicevuta(${index})" class="text-blue-400 hover:text-blue-300 text-xs font-bold">RICEVUTA</button>
+                            <button onclick="rimuoviVolontario(${index})" class="text-red-400 hover:text-red-300 text-xs font-bold">ELIMINA</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function editVolontario(index) {
+            const lista = JSON.parse(localStorage.getItem('asd_volontari')) || [];
+            const v = lista[index];
+            
+            aggiornaTendinaVolontari(lista, v.id);
+
+            document.getElementById('v-id').value = v.id || '';
+            document.getElementById('v-seleziona-volontario').value = v.id || '';
+            document.getElementById('v-cf').value = v.cf || '';
+            document.getElementById('v-nascita').value = v.nascita || '';
+            document.getElementById('v-luogo-nascita').value = v.luogoNascita || '';
+            document.getElementById('v-via').value = v.via || '';
+            document.getElementById('v-civico').value = v.civico || '';
+            document.getElementById('v-cap').value = v.cap || '';
+            document.getElementById('v-comune').value = v.comune || '';
+            document.getElementById('v-provincia').value = v.provincia || '';
+            document.getElementById('v-tel').value = v.tel || '';
+            document.getElementById('v-ruolo').value = v.ruolo || 'VOLONTARIO';
+            document.getElementById('v-compenso').value = v.compenso || '';
+            document.getElementById('v-data-compenso').value = v.dataCompenso || '';
+
+            document.getElementById('form-title').innerText = "Modifica Volontario / Compenso";
+            document.getElementById('save-btn').innerText = "AGGIORNA COMPENSO";
+            document.getElementById('cancel-btn').classList.remove('hidden');
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        }
+
+        function annullaModifica() {
+            document.getElementById('v-id').value = '';
+            document.getElementById('form-title').innerText = "Nuovo Volontario / Gestione Compenso";
+            document.getElementById('save-btn').innerText = "SALVA E REGISTRA COMPENSO";
+            document.getElementById('cancel-btn').classList.add('hidden');
+            document.querySelectorAll('input').forEach(i => {
+                if(i.type !== 'file') i.value = '';
+            });
+            document.getElementById('v-seleziona-volontario').value = '';
+            document.getElementById('v-ruolo').value = 'VOLONTARIO';
+        }
+
+        function salvaVolontario() {
+            const idField = document.getElementById('v-id').value;
+            const selectEl = document.getElementById('v-seleziona-volontario');
+            const cfInput = document.getElementById('v-cf').value.trim().toUpperCase();
+
+            if(!selectEl.value || !cfInput) return alert("Seleziona un volontario dalla tendina e inserisci il Codice Fiscale!");
+
+            const selectedOptionText = selectEl.options[selectEl.selectedIndex].text;
+            const nomeCompleto = selectedOptionText.split(' (CF:')[0].trim().toUpperCase();
+
+            const partiNome = nomeCompleto.split(' ');
+            const cognomeVal = partiNome[0] || '';
+            const nomeVal = partiNome.slice(1).join(' ') || '';
+
+            const v = {
+                id: idField ? (isNaN(idField) ? idField : Number(idField)) : selectEl.value,
+                nome: nomeCompleto,
+                cf: cfInput,
+                nascita: document.getElementById('v-nascita').value,
+                luogoNascita: document.getElementById('v-luogo-nascita').value.toUpperCase(),
+                via: document.getElementById('v-via').value.toUpperCase(),
+                civico: document.getElementById('v-civico').value.toUpperCase(),
+                cap: document.getElementById('v-cap').value,
+                comune: document.getElementById('v-comune').value.toUpperCase(),
+                provincia: document.getElementById('v-provincia').value.toUpperCase(),
+                tel: document.getElementById('v-tel').value,
+                ruolo: document.getElementById('v-ruolo').value.toUpperCase() || 'VOLONTARIO',
+                compenso: parseFloat(document.getElementById('v-compenso').value) || 0,
+                dataCompenso: document.getElementById('v-data-compenso').value
+            };
+
+            let listaVol = JSON.parse(localStorage.getItem('asd_volontari')) || [];
+            const idxVol = listaVol.findIndex(x => String(x.id) === String(v.id) || (x.cf && x.cf === v.cf));
+            if (idxVol > -1) {
+                listaVol[idxVol] = v;
+            } else {
+                listaVol.push(v);
+            }
+            localStorage.setItem('asd_volontari', JSON.stringify(listaVol));
+
+            let soci = JSON.parse(localStorage.getItem('asd_soci')) || [];
+            const idxSocio = soci.findIndex(s => String(s.id) === String(v.id) || (s.cf && s.cf === v.cf));
+            
+            const datiSocioAggiornati = {
+                id: v.id,
+                ruolo: 'VOLONTARIO',
+                altroRuolo: v.ruolo,
+                cognome: cognomeVal,
+                nome: nomeVal,
+                luogoNascita: v.luogoNascita,
+                dataNascita: v.nascita,
+                cf: v.cf,
+                indirizzo: v.via,
+                numeroCivico: v.civico,
+                cap: v.cap,
+                comune: v.comune,
+                provincia: v.provincia,
+                cell: v.tel,
+                email: idxSocio > -1 ? soci[idxSocio].email : '',
+                corso: idxSocio > -1 ? soci[idxSocio].corso : '',
+                quota: 0,
+                quotaTess: 0,
+                scadenzaMedica: idxSocio > -1 ? soci[idxSocio].scadenzaMedica : '',
+                dataIscrizione: idxSocio > -1 ? soci[idxSocio].dataIscrizione : new Date().toISOString().split('T')[0],
+                status: idxSocio > -1 ? (soci[idxSocio].status || 'ACTIVE') : 'ACTIVE'
+            };
+
+            if (idxSocio > -1) {
+                soci[idxSocio] = datiSocioAggiornati;
+            } else {
+                soci.push(datiSocioAggiornati);
+            }
+            localStorage.setItem('asd_soci', JSON.stringify(soci));
+
+            annullaModifica();
+            sincronizzaEInizializza();
+            alert("Compenso e dati volontario salvati e sincronizzati con successo!");
+        }
+
+        function rimuoviVolontario(index) {
+            if(!confirm("Vuoi rimuovere questo volontario?")) return;
+            let lista = JSON.parse(localStorage.getItem('asd_volontari')) || [];
+            const eliminato = lista[index];
+            lista.splice(index, 1);
+            localStorage.setItem('asd_volontari', JSON.stringify(lista));
+
+            if (eliminato) {
+                let soci = JSON.parse(localStorage.getItem('asd_soci')) || [];
+                soci = soci.map(s => {
+                    if (String(s.id) === String(eliminato.id) || (s.cf && eliminato.cf && s.cf === eliminato.cf)) {
+                        s.ruolo = 'SOCIO_ORDINARIO';
+                    }
+                    return s;
+                });
+                localStorage.setItem('asd_soci', JSON.stringify(soci));
+            }
+
+            sincronizzaEInizializza();
+        }
+
+        function stampaRegistro() {
+            const lista = JSON.parse(localStorage.getItem('asd_volontari')) || [];
+            const config = JSON.parse(localStorage.getItem('asd_config')) || JSON.parse(localStorage.getItem('config_asd')) || { nome: "ASD" };
+            
+            let htmlRows = '';
+            lista.forEach(v => {
+                let dataRegistro = '-';
+                if(v.dataCompenso) {
+                    const parti = v.dataCompenso.split('-');
+                    if(parti.length === 3) dataRegistro = `${parti[2]}/${parti[1]}/${parti[0]}`;
+                }
+
+                htmlRows += `
+                    <tr>
+                        <td style="border: 1px solid #ccc; padding: 8px;">${v.nome}</td>
+                        <td style="border: 1px solid #ccc; padding: 8px;">${v.cf}</td>
+                        <td style="border: 1px solid #ccc; padding: 8px;">${v.ruolo || 'VOLONTARIO'}</td>
+                        <td style="border: 1px solid #ccc; padding: 8px;">€ ${parseFloat(v.compenso || 0).toFixed(2)}</td>
+                        <td style="border: 1px solid #ccc; padding: 8px;">${dataRegistro}</td>
+                    </tr>
+                `;
+            });
+
+            const win = window.open('', '_blank');
+            win.document.write(`
+                <html>
+                <head><title>Registro Compensi Volontari</title></head>
+                <body style="font-family: sans-serif; padding: 20px;">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <h1 style="font-size: 22px; text-transform: uppercase;">Registro Compensi Volontari - ${config.nome}</h1>
+                    </div>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #f0f0f0;">
+                                <th style="border: 1px solid #ccc; padding: 8px;">Nome</th>
+                                <th style="border: 1px solid #ccc; padding: 8px;">CF</th>
+                                <th style="border: 1px solid #ccc; padding: 8px;">Ruolo</th>
+                                <th style="border: 1px solid #ccc; padding: 8px;">Compenso</th>
+                                <th style="border: 1px solid #ccc; padding: 8px;">Data</th>
+                            </tr>
+                        </thead>
+                        <tbody>${htmlRows}</tbody>
+                    </table>
+                </body>
+                </html>
+            `);
+            win.document.close();
+            setTimeout(() => { win.print(); }, 300);
+        }
+
+        function generaRicevuta(index) {
+            const v = JSON.parse(localStorage.getItem('asd_volontari'))[index];
+            const config = JSON.parse(localStorage.getItem('asd_config')) || JSON.parse(localStorage.getItem('config_asd')) || { nome: "ASD" };
+            
+            let dataCompensoFormattata = '';
+            if(v.dataCompenso) {
+                const parti = v.dataCompenso.split('-');
+                if(parti.length === 3) dataCompensoFormattata = `${parti[2]}/${parti[1]}/${parti[0]}`;
+            }
+            
+            const oggi = new Date();
+            const dataOggi = `${String(oggi.getDate()).padStart(2, '0')}/${String(oggi.getMonth() + 1).padStart(2, '0')}/${oggi.getFullYear()}`;
+            
+            const win = window.open('', '_blank');
+            win.document.write(`
+                <html>
+                <head><title>Ricevuta Compenso Volontario</title></head>
+                <body style="font-family: sans-serif; padding: 40px; max-width: 800px; margin: auto;">
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <h2 style="border-bottom: 2px solid #000; padding-bottom: 10px; text-transform: uppercase;">Dichiarazione Ricevuta Compenso / Rimborso</h2>
+                    </div>
+                    <p>Il/La sottoscritto/a <strong>${v.nome}</strong>, C.F. <strong>${v.cf}</strong>, nato/a a <strong>${v.luogoNascita || ''}</strong> il <strong>${v.nascita || ''}</strong>, residente in <strong>${v.via || ''} ${v.civico || ''}, ${v.comune || ''} (${v.provincia || ''})</strong>,</p>
+                    <p>in qualità di volontario/a presso l'associazione <strong>${config.nome}</strong>,</p>
+                    <h3 style="text-align: center; margin: 30px 0;">DICHIARA</h3>
+                    <p>ai sensi dell'<strong>art. 29 del D.Lgs. n. 36/2021 (Riforma dello Sport)</strong>, di aver percepito in data <strong>${dataCompensoFormattata}</strong> la somma complessiva di <strong>€ ${parseFloat(v.compenso || 0).toFixed(2)}</strong> a titolo di compenso/rimborso spese forfettario autorizzato.</p>
+                    <p>Il/La sottoscritto/a dichiara inoltre che tale importo, unitamente ad eventuali altri rimborsi percepiti da altre associazioni nel medesimo mese, <strong>non supera i limiti normativi vigenti</strong> in materia di attività sportiva dilettantistica e di volontariato.</p>
+                    <div style="margin-top: 60px; display: flex; justify-content: space-between;">
+                        <p>Data: ${dataOggi}</p>
+                        <p>Firma: ________________________</p>
+                    </div>
+                </body>
+                </html>
+            `);
+            win.document.close();
+            setTimeout(() => { win.print(); }, 300);
+        }
+    </script>
+</body>
+</html>

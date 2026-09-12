@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASD - REPARTO SCADENZE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #0b1120; color: white; min-height: 100vh; font-family: sans-serif; }
+        .glass { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
+        .alert-red { background: rgba(239, 68, 68, 0.2); border-left: 4px solid #ef4444; color: #f87171; }
+        .alert-yellow { background: rgba(245, 158, 11, 0.2); border-left: 4px solid #f59e0b; color: #fbbf24; }
+        .status-ok { border-left: 4px solid #10b981; color: #94a3b8; }
+        .no-data { border-left: 4px solid #64748b; color: #64748b; opacity: 0.6; }
+        @media print { 
+            .no-print { display: none !important; } 
+            body { background: white; color: black; padding: 0; } 
+            .glass { border: 1px solid #ddd; background: white; } 
+            td, th { border: 1px solid #ddd; padding: 8px; color: black !important; } 
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8" onload="initScadenze()">
+
+    <div class="max-w-6xl mx-auto">
+        <header class="flex justify-between items-center mb-10 no-print">
+            <div class="flex items-center gap-4">
+                <div id="asdLogoBadge" class="w-14 h-14 bg-gradient-to-br from-purple-600 to-blue-600 rounded-2xl flex items-center justify-center font-black italic text-2xl text-white shadow-lg border border-white/20">ASD</div>
+                <div>
+                    <h1 class="text-3xl font-black italic uppercase text-amber-400 leading-none">REPARTO SCADENZE</h1>
+                    <p id="headerAsdName" class="text-slate-500 text-[10px] font-bold uppercase tracking-[0.3em]">Ordinamento & Stampa Selettiva</p>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <a href="tesserati.html" class="bg-slate-800 px-4 py-2.5 rounded-xl font-bold uppercase text-[10px] hover:bg-slate-700 transition-all border border-white/5 flex items-center">👥 Gestione Soci</a>
+                <a href="contabilita.html" class="bg-slate-800 px-4 py-2.5 rounded-xl font-bold uppercase text-[10px] hover:bg-slate-700 transition-all border border-white/5 flex items-center">💶 Contabilità</a>
+                <button onclick="window.print()" class="bg-blue-600 px-4 py-2.5 rounded-xl font-bold uppercase text-[10px] hover:bg-blue-500 transition-all">🖨️ Stampa Schermata</button>
+            </div>
+        </header>
+
+        <!-- SEZIONE QUOTE MENSILE -->
+        <div class="mb-12">
+            <div class="flex flex-col md:flex-row justify-between items-end mb-4 gap-4 no-print">
+                <div>
+                    <h2 class="text-xl font-black uppercase italic text-blue-400">💳 QUOTE MENSILI</h2>
+                    <p class="text-xs text-slate-400">Verifica dello stato dei pagamenti delle mensilità</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="stampaCategoria('alert-red', 'SOCI SCADUTI')" class="bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase hover:bg-red-500/30">Stampa Scaduti</button>
+                    <button onclick="stampaCategoria('alert-yellow', 'SOCI IN SCADENZA')" class="bg-amber-500/20 text-amber-400 border border-amber-500/30 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase hover:bg-amber-500/30">Stampa in Scadenza</button>
+                    <button onclick="stampaCategoria('status-ok', 'SOCI IN REGOLA')" class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase hover:bg-emerald-500/30">Stampa in Regola</button>
+                </div>
+            </div>
+            <div class="glass rounded-[2rem] overflow-hidden shadow-2xl border border-white/5">
+                <table class="w-full text-left" id="tabella-main">
+                    <thead class="bg-blue-500/10 text-[10px] uppercase text-blue-300 font-black">
+                        <tr>
+                            <th class="p-5">Socio / Disciplina</th>
+                            <th class="p-5">Ultimo Pagamento</th>
+                            <th class="p-5 text-center">Stato Scadenza Quota</th>
+                            <th class="p-5 text-right no-print">Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabella-quote" class="divide-y divide-white/5"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- SEZIONE CERTIFICATI MEDICI -->
+        <div class="mb-12">
+            <div class="no-print mb-4">
+                <h2 class="text-xl font-black uppercase italic text-emerald-400">🏥 CERTIFICATI MEDICI</h2>
+                <p class="text-xs text-slate-400">Monitoraggio idoneità medica sportiva</p>
+            </div>
+            <div class="glass rounded-[2rem] overflow-hidden shadow-2xl border border-white/5">
+                <table class="w-full text-left">
+                    <thead class="bg-emerald-500/10 text-[10px] uppercase text-emerald-300 font-black">
+                        <tr>
+                            <th class="p-5">Socio / Disciplina</th>
+                            <th class="p-5">Scadenza Certificato</th>
+                            <th class="p-5 text-center">Stato</th>
+                            <th class="p-5 text-right no-print">Sollecita</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabella-certificati" class="divide-y divide-white/5"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let config = JSON.parse(localStorage.getItem('asd_config')) || JSON.parse(localStorage.getItem('config_asd')) || {};
+
+        function initScadenze() {
+            applicaHeaderConfig();
+            ricaricaDati();
+        }
+
+        function applicaHeaderConfig() {
+            const nomeAsd = config.nome || 'CONFIGURA ASD IN HOME';
+            document.getElementById('headerAsdName').innerText = `${nomeAsd} - REPARTO SCADENZE 2026`;
+
+            const badge = document.getElementById('asdLogoBadge');
+            if (config.logo) {
+                badge.innerHTML = `<img src="${config.logo}" class="w-full h-full object-contain p-1 rounded-2xl">`;
+            } else if (config.nome) {
+                const pulito = config.nome.replace(/asd/gi, '').trim();
+                badge.innerText = pulito.substring(0, 2).toUpperCase() || 'ASD';
+            }
+        }
+
+        function ricaricaDati() {
+            const soci = JSON.parse(localStorage.getItem('asd_soci')) || [];
+            const pagamenti = JSON.parse(localStorage.getItem('asd_pagamenti')) || [];
+            const oggi = new Date();
+            oggi.setHours(0,0,0,0);
+            
+            renderQuote(soci, pagamenti, oggi);
+            renderCertificati(soci, oggi);
+        }
+
+        function renderQuote(soci, pagamenti, oggi) {
+            const tbody = document.getElementById('tabella-quote');
+            let listaElaborata = [];
+
+            soci.filter(s => (s.status || 'ACTIVE') !== 'STANDBY').forEach(s => {
+                const pagSocio = pagamenti.filter(p => {
+                    if (p.tipo === 'GIROCONTO') return false;
+                    return String(p.socioId) === String(s.id) && (p.causale || "").toUpperCase().includes("QUOTA");
+                }).sort((a, b) => new Date(b.data) - new Date(a.data));
+
+                const dIsc = new Date(s.dataIscrizione || s.dataInizio || '2026-01-01');
+                const mesiDovuti = Math.max(0, (oggi.getFullYear() - dIsc.getFullYear()) * 12 + (oggi.getMonth() - dIsc.getMonth()) + 1);
+                const mensilitaPagate = pagSocio.length;
+                const ultimaData = pagSocio.length > 0 ? new Date(pagSocio[0].data) : null;
+                const giorniPassati = ultimaData ? Math.floor((oggi - ultimaData) / (1000 * 60 * 60 * 24)) : 999;
+
+                let statusClass = "status-ok";
+                let statoTesto = "🟢 REGOLARE";
+                let ordine = 2;
+
+                if (mensilitaPagate < mesiDovuti || giorniPassati > 30) {
+                    statusClass = "alert-red";
+                    const mesiArrestrati = mesiDovuti - mensilitaPagate;
+                    statoTesto = mesiArrestrati > 0 ? `🔴 ${mesiArrestrati} MENS. ARRETRATE` : "🔴 QUOTA SCADUTA";
+                    ordine = 0;
+                } else if (giorniPassati >= 25 && giorniPassati <= 30) {
+                    statusClass = "alert-yellow";
+                    statoTesto = "🟡 IN SCADENZA";
+                    ordine = 1;
+                }
+
+                const dataTesto = ultimaData ? ultimaData.toLocaleDateString('it-IT') : "MAI PAGATO";
+                
+                // Parametri per collegamento a Contabilità
+                const meseRif = (oggi.getMonth() + 1);
+                const annoRif = oggi.getFullYear();
+                const linkPaga = `contabilita.html?socioId=${s.id}&mese=${meseRif}&anno=${annoRif}&importo=${s.quota || 0}`;
+
+                const sString = JSON.stringify(s).replace(/'/g, "&#39;");
+
+                listaElaborata.push({ 
+                    html: `
+                    <tr class="${statusClass}" data-type="${statusClass}">
+                        <td class="p-5">
+                            <span class="font-black uppercase text-sm block text-white">${s.cognome} ${s.nome}</span>
+                            <span class="text-[9px] font-bold uppercase text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded">${s.corso || 'DISCIPLINA N/D'}</span>
+                        </td>
+                        <td class="p-5 text-xs font-mono font-bold">${dataTesto}</td>
+                        <td class="p-5 text-center font-black text-[10px] uppercase tracking-wider">${statoTesto}</td>
+                        <td class="p-5 text-right no-print">
+                            <div class="flex gap-2 justify-end">
+                                <a href="${linkPaga}" class="bg-emerald-600/30 hover:bg-emerald-600 text-emerald-300 hover:text-white px-3 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all">💳 Paga</a>
+                                <button onclick='sollecitaPagamentoScad(${sString})' class="bg-white/10 hover:bg-blue-600 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all">✉️ Sollecita</button>
+                            </div>
+                        </td>
+                    </tr>`, 
+                    ordine: ordine 
+                });
+            });
+
+            listaElaborata.sort((a, b) => a.ordine - b.ordine);
+            tbody.innerHTML = listaElaborata.length > 0 
+                ? listaElaborata.map(item => item.html).join('') 
+                : `<tr><td colspan="4" class="p-5 text-center text-slate-500 text-xs font-bold uppercase">Nessun tesserato trovato</td></tr>`;
+        }
+
+        function renderCertificati(soci, oggi) {
+            const tbody = document.getElementById('tabella-certificati');
+            
+            tbody.innerHTML = soci.map(s => {
+                let statusClass = "no-data";
+                let testo = "⚪ MANCANTE";
+                let dataScad = "---";
+                let ordine = 3;
+
+                if (s.scadenzaMedica) {
+                    const scad = new Date(s.scadenzaMedica);
+                    const diff = Math.ceil((scad - oggi) / (1000 * 60 * 60 * 24));
+                    dataScad = s.scadenzaMedica.split('-').reverse().join('/');
+                    
+                    if (diff < 0) { 
+                        statusClass = "alert-red"; 
+                        testo = "🔴 SCADUTO"; 
+                        ordine = 0; 
+                    } else if (diff <= 15) { 
+                        statusClass = "alert-yellow"; 
+                        testo = "🟡 IN SCADENZA"; 
+                        ordine = 1; 
+                    } else { 
+                        statusClass = "status-ok"; 
+                        testo = "🟢 VALIDO"; 
+                        ordine = 2; 
+                    }
+                }
+
+                const sString = JSON.stringify(s).replace(/'/g, "&#39;");
+
+                return { 
+                    html: `
+                    <tr class="${statusClass}">
+                        <td class="p-5">
+                            <span class="font-black uppercase text-sm block text-white">${s.cognome} ${s.nome}</span>
+                            <span class="text-[9px] font-bold uppercase text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded">${s.corso || 'DISCIPLINA N/D'}</span>
+                        </td>
+                        <td class="p-5 text-xs font-mono font-bold">${dataScad}</td>
+                        <td class="p-5 text-center font-black text-[10px] uppercase tracking-wider">${testo}</td>
+                        <td class="p-5 text-right no-print">
+                            <button onclick='sollecitaCertificatoScad(${sString})' class="bg-white/10 hover:bg-emerald-600 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all">🩺 Sollecita</button>
+                        </td>
+                    </tr>`, 
+                    ordine: ordine 
+                };
+            }).sort((a,b) => a.ordine - b.ordine).map(x => x.html).join('');
+        }
+
+        function stampaCategoria(classe, titolo) {
+            const righe = document.querySelectorAll(`#tabella-quote tr.${classe}`);
+            if (righe.length === 0) return alert("Nessun socio trovato per questa categoria.");
+            
+            let printWindow = window.open('', '_blank');
+            let tabellaContent = Array.from(righe).map(r => `<tr>${r.innerHTML}</tr>`).join('');
+            
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>STAMPA ${titolo}</title>
+                    <style>
+                        body { font-family: sans-serif; padding: 30px; color: #000; }
+                        h1 { font-size: 18px; text-transform: uppercase; border-bottom: 2px solid #000; padding-bottom: 8px; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+                        th, td { border: 1px solid #ccc; padding: 10px; text-align: left; font-size: 12px; text-transform: uppercase; }
+                        .no-print { display: none !important; }
+                    </style>
+                </head>
+                <body>
+                    <h1>${config.nome || 'ASD'} - ${titolo}</h1>
+                    <table>${tabellaContent}</table>
+                    <script>setTimeout(() => { window.print(); window.close(); }, 500);<\/script>
+                </body>
+                </html>
+            `);
+        }
+
+        function sollecitaPagamentoScad(s) {
+            const nomeAsd = config.nome || 'ASD';
+            const messaggio = `Ciao ${s.nome}, ti ricordiamo che è necessario regolarizzare la quota/mensilità relativa al corso di ${s.corso || 'attività'}. Se hai già provveduto, ti chiediamo gentilmente di inviarci la contabile o ricevuta. Grazie per la collaborazione! - ${nomeAsd}`;
+            inviaComunicazione(s, `Sollecito Quota - ${s.cognome} ${s.nome}`, messaggio);
+        }
+
+        function sollecitaCertificatoScad(s) {
+            const nomeAsd = config.nome || 'ASD';
+            const scadenza = s.scadenzaMedica ? s.scadenzaMedica.split('-').reverse().join('/') : 'MANCANTE';
+            const messaggio = `Ciao ${s.nome}, ti ricordiamo che il tuo certificato medico sportivo per il corso di ${s.corso || 'attività'} risulta in attesa di rinnovo o scaduto (Scadenza: ${scadenza}). Ti chiediamo di consegnare la copia aggiornata al più presto. Grazie! - ${nomeAsd}`;
+            inviaComunicazione(s, `Sollecito Certificato Medico - ${s.cognome} ${s.nome}`, messaggio);
+        }
+
+        function inviaComunicazione(s, oggetto, messaggio) {
+            navigator.clipboard.writeText(messaggio).then(() => {
+                if (s.email) {
+                    window.location.href = `mailto:${s.email}?subject=${encodeURIComponent(oggetto)}&body=${encodeURIComponent(messaggio)}`;
+                } else if (s.cell) {
+                    window.open(`https://wa.me/${s.cell.replace(/\s+/g, '')}?text=${encodeURIComponent(messaggio)}`, '_blank');
+                } else {
+                    alert(`Messaggio copiato negli appunti!\nNessun indirizzo email o cellulare trovato per ${s.cognome} ${s.nome}.`);
+                }
+            });
+        }
+    </script>
+</body>
+</html>

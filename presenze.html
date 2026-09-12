@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>IKSA - Registro Presenze 2026</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Libreria per la scansione QR via Webcam -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <style>
+        .glass { background: rgba(255,255,255,0.05); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.1); }
+        body { background: #0f172a; color: white; min-height: 100vh; font-family: 'Inter', sans-serif; }
+        .input-dark { background: #1e293b; border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px; border-radius: 12px; outline: none; }
+        .btn-check { width: 40px; height: 40px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.1); transition: all 0.2s; }
+        .checked { background: #10b981 !important; border-color: #34d399; }
+        .semaforo { width: 12px; height: 12px; border-radius: 50%; box-shadow: 0 0 8px rgba(0,0,0,0.5); }
+        .status-green { background: #10b981; box-shadow: 0 0 10px #10b981; }
+        .status-yellow { background: #fbbf24; box-shadow: 0 0 10px #fbbf24; }
+        .status-red { background: #ef4444; box-shadow: 0 0 10px #ef4444; animation: pulse-red 1.5s infinite; }
+        
+        @keyframes pulse-red { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+
+        .circle-progress { transition: stroke-dasharray 1s ease-in-out; }
+
+        @media print {
+            body { background: white !important; color: black !important; padding: 20px !important; }
+            .no-print { display: none !important; }
+            .glass { background: transparent !important; border: none !important; color: black !important; box-shadow: none !important; }
+            .scheda-atleta:not(.is-presente-stampa) { display: none !important; }
+            .scheda-atleta { border-bottom: 1px solid #ddd !important; border-left: 5px solid #000 !important; margin-bottom: 10px !important; display: flex !important; page-break-inside: avoid; }
+            .atleta-nome { color: black !important; font-size: 16px !important; }
+            #stampa-individuale { display: block !important; color: black !important; }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8" onload="init()">
+    <div class="max-w-5xl mx-auto">
+        
+        <header class="mb-8 flex justify-between items-center border-b border-white/10 pb-4 no-print">
+            <div class="flex items-center gap-4">
+                <div id="header-logo"></div>
+                <div>
+                    <h1 class="text-3xl font-black text-amber-400 uppercase italic">🥋 Presenze</h1>
+                    <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest italic">IKSA SYSTEM 2026</p>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="stampaSoloPresenti()" class="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-xl font-bold uppercase text-xs transition flex items-center gap-2 shadow-lg">🖨️ Stampa Presenti</button>
+                <a href="index.html" class="bg-slate-700 px-6 py-2 rounded-xl font-bold uppercase text-xs hover:bg-slate-600 transition">Home</a>
+            </div>
+        </header>
+
+        <!-- Box Scanner / Inserimento Rapido Tessera -->
+        <div class="glass p-5 rounded-3xl mb-6 no-print border-l-4 border-emerald-500 flex flex-col gap-4">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-xs font-black uppercase text-emerald-400 tracking-wider">⚡ Scanner QR o Inserimento Tessera</h2>
+                    <p class="text-[10px] text-slate-400">Usa la webcam per scannerizzare il QR della tessera oppure digita l'ID.</p>
+                </div>
+                <div class="flex gap-2 w-full md:w-auto">
+                    <button onclick="toggleScannerWebcam()" id="btnWebcam" class="bg-purple-600 hover:bg-purple-500 px-4 py-2 rounded-xl font-black uppercase text-xs transition">📷 Attiva Webcam</button>
+                    <input type="text" id="inputScan" placeholder="ID Tessera / Codice..." onkeydown="gestisciScan(event)" class="input-dark text-xs uppercase flex-1 md:w-48">
+                    <button onclick="registraDaScan()" class="bg-emerald-600 hover:bg-emerald-500 px-5 py-2 rounded-xl font-black uppercase text-xs transition">Registra</button>
+                </div>
+            </div>
+            <!-- Contenitore Webcam (inizialmente nascosto) -->
+            <div id="reader-container" class="hidden w-full max-w-sm mx-auto bg-black p-2 rounded-2xl border border-white/20">
+                <div id="reader" class="w-full rounded-xl overflow-hidden"></div>
+                <button onclick="chiudiScannerWebcam()" class="mt-2 w-full bg-red-600 text-white text-[10px] font-black uppercase py-1.5 rounded-lg">Chiudi Fotocamera</button>
+            </div>
+        </div>
+
+        <div class="glass p-6 rounded-3xl mb-8 no-print border-l-4 border-blue-500">
+            <h2 class="text-xs font-black uppercase text-blue-400 mb-4 tracking-tighter">🔍 Ricerca Storico Individuale</h2>
+            <div class="flex flex-col md:flex-row gap-4">
+                <select id="selectSocio" class="input-dark flex-1 uppercase text-xs">
+                    <option value="">Seleziona un socio per vedere il suo storico...</option>
+                </select>
+                <button onclick="generaStoricoSocio()" class="bg-blue-600 px-6 py-2 rounded-xl font-bold uppercase text-xs hover:bg-blue-500 transition">Cerca Presenze</button>
+            </div>
+            <div id="risultatoStorico" class="mt-4 hidden p-4 bg-white/5 rounded-xl border border-white/10">
+            </div>
+        </div>
+
+        <div class="glass p-6 rounded-3xl shadow-2xl mb-8 no-print">
+            <div class="flex flex-col md:flex-row gap-4 items-end justify-between">
+                <div class="flex-1 space-y-2 w-full">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase ml-2 italic">Data Lezione</label>
+                    <input type="date" id="dataLezione" onchange="renderAppello()" class="input-dark w-full text-amber-400 font-bold">
+                </div>
+                <div class="flex-1 space-y-2 w-full">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase ml-2 italic">Filtra per Corso</label>
+                    <select id="filtroCorso" onchange="renderAppello()" class="input-dark w-full text-xs uppercase"></select>
+                </div>
+                <button id="btnSalva" onclick="salvaPresenze()" class="bg-amber-500 text-slate-900 px-8 py-3 rounded-xl font-black uppercase text-sm hover:bg-amber-400 transition shadow-xl w-full md:w-auto">Salva Appello</button>
+            </div>
+        </div>
+
+        <div id="statsSessione" class="mb-4 text-[10px] uppercase font-bold text-slate-400 flex gap-4 ml-4 no-print">
+            <span>Presenti: <b id="countPresenti" class="text-emerald-400">0</b></span>
+            <span>Allievi nel Corso: <b id="countTotali">0</b></span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 no-print" id="listaAppello"></div>
+
+        <div id="stampa-individuale" class="hidden print:block">
+        </div>
+
+    </div>
+
+    <script>
+        let soci = JSON.parse(localStorage.getItem('asd_soci')) || [];
+        let registro = JSON.parse(localStorage.getItem('asd_presenze')) || {};
+        let config = JSON.parse(localStorage.getItem('asd_config')) || { corsi: [], logo: '', nome: 'IKSA MANAGER' };
+        let html5QrCode = null;
+
+        function init() {
+            // Normalizza i vecchi ID in numeri progressivi corti se necessario
+            let modificato = false;
+            soci.sort((a, b) => new Date(a.dataIscrizione || '2000-01-01') - new Date(b.dataIscrizione || '2000-01-01'));
+            soci.forEach((s, index) => {
+                const nuovoId = index + 1;
+                if (s.id !== nuovoId) {
+                    // Aggiorna anche gli ID salvati nel registro presenze storico
+                    Object.keys(registro).forEach(data => {
+                        registro[data] = registro[data].map(idPresenza => (idPresenza == s.id ? nuovoId : idPresenza));
+                    });
+                    s.id = nuovoId;
+                    modificato = true;
+                }
+            });
+
+            if (modificato) {
+                localStorage.setItem('asd_soci', JSON.stringify(soci));
+                localStorage.setItem('asd_presenze', JSON.stringify(registro));
+            }
+
+            if(config.logo) document.getElementById('header-logo').innerHTML = `<img src="${config.logo}" class="h-10 w-10 object-contain">`;
+            document.getElementById('dataLezione').valueAsDate = new Date();
+            
+            const corsiHtml = (config.corsi || []).map(c => `<option value="${c.nome}">${c.nome}</option>`).join('');
+            document.getElementById('filtroCorso').innerHTML = '<option value="">Tutti i Corsi</option>' + corsiHtml;
+            
+            const selectSocio = document.getElementById('selectSocio');
+            selectSocio.innerHTML = '<option value="">Seleziona un socio per vedere il suo storico...</option>';
+            soci.forEach(s => {
+                let opt = document.createElement('option');
+                opt.value = s.id;
+                opt.innerText = `${s.cognome} ${s.nome} (ID: ${s.id})`;
+                selectSocio.appendChild(opt);
+            });
+
+            renderAppello();
+        }
+
+        function toggleScannerWebcam() {
+            const container = document.getElementById('reader-container');
+            if (container.classList.contains('hidden')) {
+                container.classList.remove('hidden');
+                avviaScannerWebcam();
+            } else {
+                chiudiScannerWebcam();
+            }
+        }
+
+        function avviaScannerWebcam() {
+            html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start(
+                { facingMode: "environment" }, 
+                { fps: 10, qrbox: { width: 200, height: 200 } },
+                (decodedText) => {
+                    document.getElementById('inputScan').value = decodedText.trim();
+                    registraDaScan();
+                    chiudiScannerWebcam();
+                },
+                (errorMessage) => {}
+            ).catch(err => {
+                alert("Impossibile accedere alla fotocamera: " + err);
+                chiudiScannerWebcam();
+            });
+        }
+
+        function chiudiScannerWebcam() {
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    html5QrCode.clear();
+                }).catch(err => console.log(err));
+            }
+            document.getElementById('reader-container').classList.add('hidden');
+        }
+
+        function gestisciScan(e) {
+            if (e.key === 'Enter') {
+                registraDaScan();
+            }
+        }
+
+        function registraDaScan() {
+            const input = document.getElementById('inputScan');
+            const val = input.value.trim();
+            if (!val) return;
+
+            const socioTrovato = soci.find(s => s.id == val || (s.cf && s.cf.toUpperCase() === val.toUpperCase()));
+
+            if (!socioTrovato) {
+                alert("❌ Tessera non trovata o ID non valido!");
+                input.value = "";
+                return;
+            }
+
+            const dataScelta = document.getElementById('dataLezione').value;
+            if (!registro[dataScelta]) {
+                registro[dataScelta] = [];
+            }
+
+            const index = registro[dataScelta].indexOf(socioTrovato.id);
+            if (index === -1) {
+                registro[dataScelta].push(socioTrovato.id);
+            }
+
+            localStorage.setItem('asd_presenze', JSON.stringify(registro));
+            renderAppello();
+
+            input.value = "";
+            input.placeholder = `✅ ${socioTrovato.cognome} Registrato!`;
+            setTimeout(() => { input.placeholder = "ID Tessera / Codice..."; }, 2000);
+        }
+
+        function renderAppello() {
+            const container = document.getElementById('listaAppello');
+            const corsoScelto = document.getElementById('filtroCorso').value;
+            const dataScelta = document.getElementById('dataLezione').value;
+            const presentiOggi = registro[dataScelta] || [];
+            const oggi = new Date();
+            oggi.setHours(0,0,0,0);
+
+            const sociFiltrati = soci.filter(s => corsoScelto === "" || s.corso === corsoScelto);
+            document.getElementById('countTotali').innerText = sociFiltrati.length;
+
+            container.innerHTML = sociFiltrati.sort((a,b) => a.cognome.localeCompare(b.cognome)).map(s => {
+                const isPresente = presentiOggi.includes(s.id);
+                const scadMedica = s.scadenzaMedica ? new Date(s.scadenzaMedica) : null;
+                let statusClass = "bg-slate-700";
+                
+                if (scadMedica) {
+                    const diffGiorni = Math.ceil((scadMedica - oggi) / (1000 * 60 * 60 * 24));
+                    if (diffGiorni <= 0) statusClass = "status-red";
+                    else if (diffGiorni <= 15) statusClass = "status-yellow";
+                    else statusClass = "status-green";
+                } else { statusClass = "status-red"; }
+
+                return `
+                <div id="card-${s.id}" class="scheda-atleta glass p-4 rounded-2xl flex items-center justify-between border-l-4 border-slate-700 ${isPresente ? 'is-presente-stampa' : ''}">
+                    <div class="flex items-center gap-3">
+                        <div class="semaforo ${statusClass} no-print"></div>
+                        <div>
+                            <div class="atleta-nome font-bold uppercase text-white leading-tight">${s.cognome} ${s.nome} <span class="text-[10px] text-slate-500 font-mono">(ID: ${s.id})</span></div>
+                            <div class="text-[9px] text-slate-500 uppercase font-bold no-print">Med: ${s.scadenzaMedica ? s.scadenzaMedica.split('-').reverse().join('/') : 'MANCANTE'}</div>
+                        </div>
+                    </div>
+                    <button id="btn-${s.id}" onclick="togglePresenza(${s.id})" class="btn-check ${isPresente ? 'checked' : 'bg-slate-800'} flex items-center justify-center text-xl">
+                        ${isPresente ? '✔️' : ''}
+                    </button>
+                </div>`;
+            }).join('');
+            aggiornaContatore();
+        }
+
+        function togglePresenza(id) {
+            const btn = document.getElementById(`btn-${id}`);
+            const card = document.getElementById(`card-${id}`);
+            btn.classList.toggle('checked');
+            card.classList.toggle('is-presente-stampa');
+            btn.innerText = btn.classList.contains('checked') ? '✔️' : '';
+            aggiornaContatore();
+            salvaPresenze();
+        }
+
+        function aggiornaContatore() {
+            const num = document.querySelectorAll('.btn-check.checked').length;
+            document.getElementById('countPresenti').innerText = num;
+        }
+
+        function salvaPresenze() {
+            const dataScelta = document.getElementById('dataLezione').value;
+            const presenti = Array.from(document.querySelectorAll('.btn-check.checked'))
+                                  .map(btn => parseInt(btn.id.replace('btn-', '')));
+            registro[dataScelta] = presenti;
+            localStorage.setItem('asd_presenze', JSON.stringify(registro));
+            
+            const btn = document.getElementById('btnSalva');
+            btn.innerText = "✅ SALVATO";
+            setTimeout(() => { btn.innerText = "Salva Appello"; }, 1000);
+        }
+
+        function generaStoricoSocio() {
+            const idSocio = parseInt(document.getElementById('selectSocio').value);
+            if(!idSocio) return;
+
+            const socio = soci.find(s => s.id === idSocio);
+            const datePresenza = [];
+
+            Object.keys(registro).forEach(data => {
+                if(registro[data].includes(idSocio)) {
+                    datePresenza.push(data);
+                }
+            });
+
+            datePresenza.sort((a,b) => new Date(b) - new Date(a));
+
+            const dataSelezionata = document.getElementById('dataLezione').value ? new Date(document.getElementById('dataLezione').value) : new Date();
+            const annoSelezionato = dataSelezionata.getFullYear();
+            const meseSelezionato = dataSelezionata.getMonth();
+
+            const presenzeMese = datePresenza.filter(d => {
+                const dt = new Date(d);
+                return dt.getFullYear() === annoSelezionato && dt.getMonth() === meseSelezionato;
+            });
+            const targetMensile = 12;
+            const percentualeMensile = Math.min((presenzeMese.length / targetMensile) * 100, 100);
+
+            const presenzeAnnuale = datePresenza.filter(d => {
+                const dt = new Date(d);
+                const m = dt.getMonth() + 1;
+                return dt.getFullYear() === annoSelezionato && m !== 7 && m !== 8;
+            });
+            const targetAnnuale = 120;
+            const percentualeAnnuale = Math.min((presenzeAnnuale.length / targetAnnuale) * 100, 100);
+            
+            let coloreM = "#3b82f6";
+            if(percentualeMensile >= 80) coloreM = "#10b981";
+            if(percentualeMensile < 40) coloreM = "#ef4444";
+
+            let coloreA = "#3b82f6";
+            if(percentualeAnnuale >= 80) coloreA = "#10b981";
+            if(percentualeAnnuale < 40) coloreA = "#ef4444";
+
+            const divRisultato = document.getElementById('risultatoStorico');
+            divRisultato.classList.remove('hidden');
+            
+            let html = `
+                <div class="flex flex-col md:flex-row gap-4 items-center justify-around">
+                    <div class="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/10 flex-1 w-full">
+                        <div class="relative w-20 h-20 flex-shrink-0">
+                            <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                                <path class="text-slate-700" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" />
+                                <path class="circle-progress" stroke-dasharray="${percentualeMensile}, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="${coloreM}" stroke-width="3" stroke-linecap="round" />
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <span class="text-sm font-black">${Math.round(percentualeMensile)}%</span>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="font-black text-white text-xs uppercase text-amber-400">Mensile (${dataSelezionata.toLocaleString('it-IT', { month: 'long' })} ${annoSelezionato})</h4>
+                            <p class="text-[10px] text-slate-400 font-bold uppercase">Presenze: <span class="text-white">${presenzeMese.length} / ${targetMensile}</span></p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/10 flex-1 w-full">
+                        <div class="relative w-20 h-20 flex-shrink-0">
+                            <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                                <path class="text-slate-700" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" />
+                                <path class="circle-progress" stroke-dasharray="${percentualeAnnuale}, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="${coloreA}" stroke-width="3" stroke-linecap="round" />
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <span class="text-sm font-black">${Math.round(percentualeAnnuale)}%</span>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="font-black text-white text-xs uppercase text-emerald-400">Annuale (${annoSelezionato} - 10 Mesi)</h4>
+                            <p class="text-[10px] text-slate-400 font-bold uppercase">Presenze: <span class="text-white">${presenzeAnnuale.length} / ${targetAnnuale}</span></p>
+                            <span class="text-[8px] text-slate-500 italic">Esclusi Luglio e Agosto</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-4 border-t border-white/10">
+                    <div class="text-[9px] font-bold text-slate-500 uppercase mb-2 italic">Tutte le presenze registrate (${socio.cognome} ${socio.nome}):</div>
+                    <div class="grid grid-cols-4 md:grid-cols-6 gap-2 max-h-24 overflow-y-auto pr-2">
+                        ${datePresenza.map(d => `<div class="text-[9px] bg-slate-800 p-1.5 rounded text-center font-mono">${d.split('-').reverse().join('/')}</div>`).join('')}
+                    </div>
+                </div>
+            `;
+            
+            divRisultato.innerHTML = html;
+        }
+
+        function stampaSoloPresenti() { window.print(); }
+    </script>
+</body>
+</html>

@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestione Partite Aperte</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .glass { background: rgba(255,255,255,0.05); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.1); }
+        body { background: #0f172a; color: white; min-height: 100vh; font-family: sans-serif; }
+        .input-asd { width: 100%; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 8px; outline: none; color: white; font-size: 13px; }
+        .input-asd:focus { border-color: #a855f7; }
+        .label-asd { font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 4px; display: block; }
+
+        /* Stili per la stampa */
+        @media print {
+            body > *:not(#print-report) { display: none !important; }
+            body { background: white !important; color: black !important; padding: 0 !important; }
+            #print-report { display: block !important; }
+            table { color: black !important; width: 100%; border-collapse: collapse; }
+            tr { border-bottom: 1px solid #ccc !important; }
+            h1, h2 { color: black !important; }
+        }
+        #print-report { display: none; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-4xl mx-auto">
+        <header class="mb-8 flex justify-between items-center border-b border-white/10 pb-4">
+            <div class="flex items-center gap-4">
+                <div id="asdLogoBadge" class="w-12 h-12 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl flex items-center justify-center font-black italic text-white text-xl shadow-xl border border-white/20">ASD</div>
+                <div>
+                    <h1 class="text-2xl font-black text-purple-400 uppercase italic">💰 Gestione Partite Aperte</h1>
+                </div>
+            </div>
+            <div class="flex gap-2 no-print">
+                <button onclick="preparaEStampa()" class="bg-emerald-600 px-6 py-2 rounded-xl font-bold uppercase text-[10px] hover:bg-emerald-500 transition">Stampa Residui</button>
+                <a href="index.html" class="bg-slate-700 px-6 py-2 rounded-xl font-bold uppercase text-[10px] hover:bg-slate-600 transition">Home</a>
+            </div>
+        </header>
+
+        <!-- Riepilogo Saldo -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 no-print">
+            <div id="boxSaldo" class="glass p-6 rounded-3xl border-l-4 border-purple-500">
+                <h2 class="text-slate-400 text-xs font-bold uppercase">Saldo Totale (Visualizzato)</h2>
+                <p id="totaleSaldo" class="text-4xl font-black text-white mt-1">€ 0.00</p>
+            </div>
+            <div class="glass p-6 rounded-3xl border-l-4 border-blue-500">
+                <h2 class="text-slate-400 text-xs font-bold uppercase">Filtra per Tesserato</h2>
+                <select id="filtroSocio" onchange="renderDashboard()" class="input-asd bg-slate-900 mt-2">
+                    <option value="">-- TUTTI I TESSERATI --</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="containerSaldiSoci" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 no-print"></div>
+
+        <div class="glass p-6 rounded-3xl mb-8 no-print">
+            <input type="hidden" id="debitoId">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div><label class="label-asd">Seleziona Tesserato</label><select id="socioSelect" class="input-asd bg-slate-900"></select></div>
+                <div><label class="label-asd">Tipo Movimento</label><select id="tipoMovimento" class="input-asd bg-slate-900"><option value="PARTITA APERTA">PARTITA APERTA</option><option value="PAGAMENTO">PAGAMENTO</option></select></div>
+                <div><label class="label-asd">Causale</label><input type="text" id="causale" placeholder="Es. Gara, Materiale, ecc." class="input-asd"></div>
+                <div><label class="label-asd">Importo (€)</label><input type="number" id="importo" step="0.01" class="input-asd"></div>
+                <div><label class="label-asd">Data</label><input type="date" id="dataDebito" class="input-asd bg-slate-900"></div>
+            </div>
+            <button onclick="salvaDebito()" id="btnSalva" class="mt-6 w-full bg-purple-600 py-3 rounded-xl font-black uppercase text-white hover:bg-purple-500 transition">Salva Movimento</button>
+        </div>
+
+        <div class="glass rounded-3xl overflow-hidden">
+            <table class="w-full text-left text-xs uppercase">
+                <thead class="bg-white/5 text-slate-400">
+                    <tr><th class="p-4">Tesserato</th><th class="p-4">Tipo</th><th class="p-4">Causale</th><th class="p-4">Data</th><th class="p-4">Importo</th><th class="p-4 text-right no-print">Azioni</th></tr>
+                </thead>
+                <tbody id="tabellaDebiti"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Div nascosto per la stampa dei residui -->
+    <div id="print-report" class="p-8">
+        <h1 class="text-2xl font-black mb-6">ELENCO DEBITI RESIDUI - <span id="printDate"></span></h1>
+        <table class="w-full text-left border-collapse">
+            <thead><tr class="border-b-2 border-black"><th class="p-2">TESSERATO</th><th class="p-2 text-right">IMPORTO A DEBITO</th></tr></thead>
+            <tbody id="printBody"></tbody>
+        </table>
+    </div>
+
+    <script>
+        let debiti = JSON.parse(localStorage.getItem('asd_debiti')) || [];
+        let soci = JSON.parse(localStorage.getItem('asd_soci')) || [];
+
+        window.onload = () => {
+            applicaNomeAsdHeader();
+            popolaTuttiISocioSelect();
+            document.getElementById('dataDebito').valueAsDate = new Date();
+            renderDashboard();
+        };
+
+        function renderDashboard() { renderTable(); renderSaldiPerSocio(); }
+
+        function applicaNomeAsdHeader() { 
+            const config = JSON.parse(localStorage.getItem('asd_config')) || JSON.parse(localStorage.getItem('config_asd')) || {}; 
+            const badge = document.getElementById('asdLogoBadge'); 
+            if (config.nome) { badge.innerText = config.nome.substring(0, 2).toUpperCase(); } 
+        }
+
+        function popolaTuttiISocioSelect() { 
+            const selFiltro = document.getElementById('filtroSocio');
+            const selForm = document.getElementById('socioSelect');
+            const options = soci.sort((a,b) => (a.cognome || '').localeCompare(b.cognome || '')).map(s => `<option value="${s.id}">${s.cognome} ${s.nome}</option>`).join('');
+            selFiltro.innerHTML = '<option value="">-- TUTTI I TESSERATI --</option>' + options;
+            selForm.innerHTML = '<option value="">-- SELEZIONA --</option>' + options;
+        }
+
+        function renderSaldiPerSocio() {
+            const container = document.getElementById('containerSaldiSoci');
+            container.innerHTML = '';
+            soci.forEach(s => {
+                const debitiSocio = debiti.filter(d => String(d.socioId) === String(s.id));
+                const saldo = debitiSocio.reduce((acc, d) => d.tipo === 'PAGAMENTO' ? acc - (parseFloat(d.importo) || 0) : acc + (parseFloat(d.importo) || 0), 0);
+                if (debitiSocio.length > 0) {
+                    container.innerHTML += `<div class="glass p-4 rounded-xl border-l-4 ${saldo > 0.01 ? 'border-red-500' : 'border-emerald-500'}"><h3 class="text-[9px] font-bold text-slate-400 uppercase">${s.cognome} ${s.nome}</h3><p class="text-sm font-black ${saldo > 0.01 ? 'text-red-400' : 'text-emerald-400'}">€ ${saldo.toFixed(2)}</p></div>`;
+                }
+            });
+        }
+
+        function salvaDebito() {
+            const id = document.getElementById('debitoId').value;
+            const socioId = document.getElementById('socioSelect').value;
+            const tipo = document.getElementById('tipoMovimento').value.trim().toUpperCase();
+            const causale = document.getElementById('causale').value;
+            const importo = parseFloat(document.getElementById('importo').value) || 0;
+            const data = document.getElementById('dataDebito').value;
+
+            if(!socioId || !causale || importo <= 0) return alert("Compila correttamente!");
+
+            const nuovoDebito = { id: id ? parseInt(id) : Date.now(), socioId: String(socioId), tipo: tipo, causale: causale, importo: importo, data: data };
+
+            if(id) { const idx = debiti.findIndex(d => String(d.id) === String(id)); if(idx !== -1) debiti[idx] = nuovoDebito; } 
+            else { debiti.push(nuovoDebito); }
+
+            localStorage.setItem('asd_debiti', JSON.stringify(debiti));
+            document.getElementById('debitoId').value = '';
+            document.getElementById('causale').value = '';
+            document.getElementById('importo').value = '';
+            renderDashboard();
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('tabellaDebiti');
+            const filtroSocioId = document.getElementById('filtroSocio').value;
+            tbody.innerHTML = '';
+            let totaleGlobale = 0;
+
+            debiti.sort((a,b) => b.data.localeCompare(a.data)).forEach(d => {
+                if (filtroSocioId && String(d.socioId) !== String(filtroSocioId)) return;
+                const socio = soci.find(s => String(s.id) === String(d.socioId)) || { cognome: 'Sconosciuto', nome: '' };
+                const importoNum = parseFloat(d.importo) || 0;
+                const isPagamento = (d.tipo || '').trim().toUpperCase() === 'PAGAMENTO';
+                const dataParts = (d.data || '').split('-');
+                const dataFormattata = dataParts.length === 3 ? `${dataParts[2]}/${dataParts[1]}/${dataParts[0]}` : d.data;
+                
+                if(isPagamento) totaleGlobale -= importoNum; else totaleGlobale += importoNum;
+                
+                tbody.innerHTML += `
+                    <tr class="border-b border-white/5">
+                        <td class="p-4 font-bold">${socio.cognome} ${socio.nome}</td>
+                        <td class="p-4 font-bold ${isPagamento ? 'text-emerald-400' : 'text-rose-400'}">${d.tipo}</td>
+                        <td class="p-4">${d.causale}</td>
+                        <td class="p-4">${dataFormattata}</td>
+                        <td class="p-4 font-black ${isPagamento ? 'text-emerald-400' : 'text-white'}">${isPagamento ? '-' : ''}€ ${importoNum.toFixed(2)}</td>
+                        <td class="p-4 text-right flex gap-3 justify-end no-print">
+                            ${!isPagamento ? `<button onclick="saldaDebito(${d.id})" class="text-amber-400 hover:text-amber-300 font-bold">SALDA</button>` : ''}
+                            <button onclick="modificaDebito(${d.id})" class="text-blue-400 hover:text-blue-300 font-bold">MODIFICA</button>
+                            <button onclick="eliminaDebito(${d.id})" class="text-red-400 hover:text-red-300 font-bold">ELIMINA</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            const saldoEl = document.getElementById('totaleSaldo');
+            saldoEl.innerText = `€ ${totaleGlobale.toFixed(2)}`;
+            saldoEl.className = `text-4xl font-black mt-1 ${totaleGlobale > 0.01 ? 'text-red-400' : 'text-emerald-400'}`;
+        }
+
+        function preparaEStampa() {
+            const printBody = document.getElementById('printBody');
+            printBody.innerHTML = '';
+            document.getElementById('printDate').innerText = new Date().toLocaleDateString('it-IT');
+            
+            soci.forEach(s => {
+                const debitiSocio = debiti.filter(d => String(d.socioId) === String(s.id));
+                const saldo = debitiSocio.reduce((acc, d) => d.tipo === 'PAGAMENTO' ? acc - (parseFloat(d.importo) || 0) : acc + (parseFloat(d.importo) || 0), 0);
+                
+                if (saldo > 0.01) {
+                    printBody.innerHTML += `
+                        <tr class="border-b">
+                            <td class="p-3 font-bold">${s.cognome} ${s.nome}</td>
+                            <td class="p-3 text-right font-black">€ ${saldo.toFixed(2)}</td>
+                        </tr>
+                    `;
+                }
+            });
+            window.print();
+        }
+
+        function modificaDebito(id) { const d = debiti.find(x => String(x.id) === String(id)); if(!d) return; document.getElementById('debitoId').value = d.id; document.getElementById('socioSelect').value = d.socioId; document.getElementById('tipoMovimento').value = (d.tipo || 'PARTITA APERTA').trim().toUpperCase(); document.getElementById('causale').value = d.causale; document.getElementById('importo').value = d.importo; document.getElementById('dataDebito').value = d.data; window.scrollTo({ top: 0, behavior: 'smooth' }); }
+        function eliminaDebito(id) { if(confirm("Eliminare?")) { debiti = debiti.filter(x => String(x.id) !== String(id)); localStorage.setItem('asd_debiti', JSON.stringify(debiti)); renderDashboard(); } }
+        function saldaDebito(id) { const debito = debiti.find(x => String(x.id) === String(id)); if(!debito) return; const imp = parseFloat(prompt("Importo:", debito.importo)); if(imp > 0) { debiti.push({id: Date.now(), socioId: String(debito.socioId), tipo: 'PAGAMENTO', causale: 'Saldo: ' + debito.causale, importo: imp, data: new Date().toISOString().split('T')[0]}); localStorage.setItem('asd_debiti', JSON.stringify(debiti)); renderDashboard(); } }
+    </script>
+</body>
+</html>

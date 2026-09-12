@@ -1,0 +1,2278 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CONTABILITÀ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { background: #0b1120; color: white; min-height: 100vh; font-family: 'Inter', sans-serif; }
+        .glass { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
+        .input-dark { background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 12px; border-radius: 12px; width: 100%; outline: none; }
+        .input-dark:focus { border-color: #f59e0b; ring: 2px; ring-color: #f59e0b; }
+        .led-green { color: #10b981; filter: drop-shadow(0 0 5px #10b981); }
+        .led-yellow { color: #f59e0b; filter: drop-shadow(0 0 5px #f59e0b); }
+        .led-red { color: #ef4444; filter: drop-shadow(0 0 5px #ef4444); }
+        .modal-overlay { background: rgba(0,0,0,0.9); position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+        
+        .riepilogo-socio-container {
+            background-color: #1a1a2e;
+            color: #fff;
+            padding: 15px;
+            border-radius: 12px;
+            border: 2px solid #ff7b00;
+            font-family: sans-serif;
+            width: 100%;
+        }
+        .badge-scoperto {
+            background-color: #d9534f;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .info-line {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+        .sezione-arretrati {
+            margin-top: 15px;
+            border-top: 1px solid #444;
+            padding-top: 10px;
+        }
+        .lista-mesi-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 150px;
+            overflow-y: auto;
+            margin-top: 8px;
+        }
+        .mese-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #252542;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        .totale-selezionato {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+            border-top: 2px dashed #ff7b00;
+            padding-top: 10px;
+            font-size: 16px;
+        }
+        .cronologia-socio-box {
+            margin-top: 15px;
+            border-top: 1px solid #444;
+            padding-top: 10px;
+        }
+        .cronologia-lista {
+            max-height: 140px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-top: 6px;
+        }
+        .cronologia-item {
+            background: #16213e;
+            padding: 6px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        @page { size: portrait; margin: 15mm 10mm 15mm 10mm; }
+
+        @media print {
+            body { background: white !important; color: black !important; padding: 0 !important; }
+            body * { display: none !important; }
+            
+            body.print-receipt #modal-overlay, 
+            body.print-receipt #modal-overlay *, 
+            body.print-receipt #modal-ricevuta, 
+            body.print-receipt #modal-ricevuta * { 
+                display: block !important; 
+                visibility: visible !important; 
+                color: #0f172a !important;
+            }
+            body.print-receipt #modal-overlay { 
+                position: absolute !important; 
+                background: white !important; 
+                inset: 0 !important;
+                display: flex !important;
+                justify-content: center !important;
+                align-items: start !important;
+                padding-top: 10mm !important;
+            }
+            body.print-receipt #modal-ricevuta { 
+                box-shadow: none !important; 
+                border: none !important; 
+                width: 100% !important; 
+                max-width: 80mm !important;
+                padding: 0 !important;
+                margin: 0 auto !important;
+            }
+
+            body.print-report #modal-bilancio-overlay,
+            body.print-report #modal-bilancio-overlay *,
+            body.print-report #bilancio-stampa-content,
+            body.print-report #bilancio-stampa-content * {
+                display: block !important;
+                visibility: visible !important;
+                color: black !important;
+            }
+            body.print-report #modal-bilancio-overlay {
+                position: absolute !important;
+                background: white !important;
+                inset: 0 !important;
+                display: block !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            body.print-report #modal-bilancio-box {
+                box-shadow: none !important;
+                border: none !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                background: white !important;
+            }
+
+            body.print-report-socio #modal-report-socio-overlay,
+            body.print-report-socio #modal-report-socio-overlay *,
+            body.print-report-socio #report-socio-stampa-content,
+            body.print-report-socio #report-socio-stampa-content * {
+                display: block !important;
+                visibility: visible !important;
+                color: black !important;
+            }
+            body.print-report-socio #modal-report-socio-overlay {
+                position: absolute !important;
+                background: white !important;
+                inset: 0 !important;
+                display: block !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            body.print-report-socio #modal-report-socio-box {
+                box-shadow: none !important;
+                border: none !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                background: white !important;
+            }
+
+            #r-causale { color: #2563eb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            #r-importo { color: #059669 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-6" onload="init()">
+
+    <!-- Modal Elargizione Volontaria -->
+    <div id="modal-elargizione-overlay" class="modal-overlay">
+        <div class="bg-slate-900 border border-slate-700 text-white p-6 md:p-8 rounded-[2.5rem] max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h2 class="text-xl font-black uppercase text-amber-500 mb-1 text-center">Dati Elargizione Volontaria</h2>
+            <p class="text-[11px] text-slate-400 font-bold text-center mb-6 uppercase">Seleziona la tipologia di soggetto erogante</p>
+            
+            <div class="flex gap-2 mb-6 p-1 bg-slate-950 rounded-2xl border border-white/10">
+                <button type="button" onclick="setTipoElargitore('PERSONA_FISICA')" id="btnElargPF" class="flex-1 py-3 rounded-xl font-black text-[10px] uppercase bg-amber-500 text-slate-900 transition">Persona Fisica</button>
+                <button type="button" onclick="setTipoElargitore('SOCIETA')" id="btnElargSoc" class="flex-1 py-3 rounded-xl font-black text-[10px] uppercase bg-slate-800 text-slate-400 transition">Società / Ditta</button>
+            </div>
+
+            <input type="hidden" id="elargTipo" value="PERSONA_FISICA">
+
+            <div id="boxElargPF" class="space-y-4">
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase">Nome e Cognome *</label>
+                    <input id="elargPfNome" class="input-dark text-xs uppercase mt-1" placeholder="ES. MARIO ROSSI">
+                </div>
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase">Codice Fiscale</label>
+                    <input id="elargPfCf" class="input-dark text-xs uppercase mt-1" placeholder="ES. RSSMRA80A01H501Z">
+                </div>
+                <div class="grid grid-cols-4 gap-2">
+                    <div class="col-span-3">
+                        <label class="text-[10px] font-black text-slate-400 uppercase">Via / Corso / Piazza</label>
+                        <input id="elargPfVia" class="input-dark text-xs uppercase mt-1" placeholder="ES. VIA ROMA">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase">N° Civico</label>
+                        <input id="elargPfCivico" class="input-dark text-xs uppercase mt-1" placeholder="ES. 10/A">
+                    </div>
+                </div>
+                <div class="grid grid-cols-6 gap-2">
+                    <div class="col-span-2">
+                        <label class="text-[10px] font-black text-slate-400 uppercase">CAP</label>
+                        <input id="elargPfCap" class="input-dark text-xs uppercase mt-1" placeholder="90100">
+                    </div>
+                    <div class="col-span-3">
+                        <label class="text-[10px] font-black text-slate-400 uppercase">Comune</label>
+                        <input id="elargPfComune" class="input-dark text-xs uppercase mt-1" placeholder="PALERMO">
+                    </div>
+                    <div class="col-span-1">
+                        <label class="text-[10px] font-black text-slate-400 uppercase">Pr</label>
+                        <input id="elargPfProv" class="input-dark text-xs uppercase mt-1" placeholder="PA">
+                    </div>
+                </div>
+            </div>
+
+            <div id="boxElargSoc" class="space-y-4 hidden">
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase">Ragione Sociale / Nome Ditta *</label>
+                    <input id="elargSocNome" class="input-dark text-xs uppercase mt-1" placeholder="ES. ACME S.R.L.">
+                </div>
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase">Partita IVA / C.F.</label>
+                    <input id="elargSocPiva" class="input-dark text-xs uppercase mt-1" placeholder="ES. 01234567890">
+                </div>
+                <div class="grid grid-cols-4 gap-2">
+                    <div class="col-span-3">
+                        <label class="text-[10px] font-black text-slate-400 uppercase">Via / Corso Sede Legale</label>
+                        <input id="elargSocVia" class="input-dark text-xs uppercase mt-1" placeholder="ES. CORSO ITALIA">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase">N° Civico</label>
+                        <input id="elargSocCivico" class="input-dark text-xs uppercase mt-1" placeholder="ES. 50">
+                    </div>
+                </div>
+                <div class="grid grid-cols-6 gap-2">
+                    <div class="col-span-2">
+                        <label class="text-[10px] font-black text-slate-400 uppercase">CAP</label>
+                        <input id="elargSocCap" class="input-dark text-xs uppercase mt-1" placeholder="90100">
+                    </div>
+                    <div class="col-span-3">
+                        <label class="text-[10px] font-black text-slate-400 uppercase">Comune</label>
+                        <input id="elargSocComune" class="input-dark text-xs uppercase mt-1" placeholder="PALERMO">
+                    </div>
+                    <div class="col-span-1">
+                        <label class="text-[10px] font-black text-slate-400 uppercase">Pr</label>
+                        <input id="elargSocProv" class="input-dark text-xs uppercase mt-1" placeholder="PA">
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 flex gap-3">
+                <button type="button" onclick="confermaElargizione()" class="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-900 font-black py-4 rounded-2xl uppercase text-xs transition shadow-lg">Conferma Dati</button>
+                <button type="button" onclick="chiudiModalElargizione()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-5 py-4 rounded-2xl uppercase text-xs transition">Annulla</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Ricevuta -->
+    <div id="modal-overlay" class="modal-overlay">
+        <div id="modal-ricevuta" class="bg-white text-slate-900 p-8 rounded-[2.5rem] max-w-md w-full shadow-2xl">
+            <div id="print-area">
+                <div class="text-center mb-6">
+                    <div id="receipt-logo" class="w-16 h-16 mx-auto mb-3 flex items-center justify-center bg-orange-500 rounded-2xl font-black italic text-white text-xl">
+                        <img src="logo.png" alt="Logo" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+                    </div>
+                    <h2 id="r-asd-nome" class="text-2xl font-black uppercase tracking-tighter mb-1">---</h2>
+                    <p id="r-soc-info" class="text-[10px] text-slate-500 font-bold uppercase"></p>
+                    <div class="mt-4 inline-block px-4 py-1 bg-blue-50 rounded-full border border-blue-100">
+                        <p class="text-[11px] text-blue-800 font-black uppercase">Ricevuta n° <span id="r-numero">---</span></p>
+                    </div>
+                </div>
+                <div class="space-y-3 border-y border-slate-100 py-6 mb-6 text-sm">
+                    <div class="flex justify-between border-b pb-1"><span>Data</span><span id="r-data" class="font-bold"></span></div>
+                    <div class="flex justify-between border-b pb-1"><span>Soggetto</span><span id="r-socio" class="font-bold uppercase text-right"></span></div>
+                    <div class="flex justify-between border-b pb-1"><span id="r-cf-label">Cod. Fiscale / P.IVA</span><span id="r-cf" class="font-bold text-right"></span></div>
+                    <div id="r-box-indirizzo" class="flex justify-between border-b pb-1"><span class="text-xs">Indirizzo</span><span id="r-indirizzo" class="font-bold text-right text-xs uppercase"></span></div>
+                    <div class="flex justify-between border-b pb-1"><span>Causale</span><span id="r-causale" class="font-bold text-blue-600 italic text-right uppercase"></span></div>
+                    <div class="flex justify-between border-b pb-1"><span>Metodo</span><span id="r-metodo" class="font-bold uppercase"></span></div>
+                    <div class="flex justify-between items-center pt-4"><span>Totale</span><span id="r-importo" class="text-4xl font-black text-emerald-600"></span></div>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3 no-print" id="receipt-actions">
+                <button onclick="avviaStampaRicevuta()" class="bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-[10px] hover:bg-slate-800">Stampa</button>
+                <button onclick="inviaViaEmail()" class="bg-blue-600 text-white py-4 rounded-2xl font-black uppercase text-[10px] hover:bg-blue-500">Copia Foto & Mail</button>
+                <button onclick="chiudiRicevuta()" class="col-span-2 bg-slate-100 text-slate-500 font-bold text-[10px] uppercase py-3 rounded-2xl hover:bg-slate-200">Chiudi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Bilancio Stampabile -->
+    <div id="modal-bilancio-overlay" class="modal-overlay overflow-y-auto">
+        <div id="modal-bilancio-box" class="bg-slate-950 text-white p-6 md:p-10 rounded-[2.5rem] max-w-5xl w-full shadow-2xl border border-white/10 my-8">
+            <div class="flex justify-between items-center mb-6 no-print">
+                <h2 class="text-xl font-black uppercase text-amber-500">Report & Bilancio Stampabile (1 Gennaio - 31 Dicembre)</h2>
+                <div class="flex gap-2">
+                    <button onclick="avviaStampaBilancio()" class="bg-amber-500 text-slate-900 px-5 py-2.5 rounded-xl font-black uppercase text-[10px] hover:bg-amber-400">Stampa / Salva PDF</button>
+                    <button onclick="chiudiBilancio()" class="bg-slate-800 text-slate-400 px-5 py-2.5 rounded-xl font-black uppercase text-[10px] hover:bg-slate-700">Chiudi</button>
+                </div>
+            </div>
+            
+            <div id="bilancio-stampa-content" class="bg-white text-slate-900 p-8 rounded-2xl">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-6 mb-6">
+                    <div>
+                        <h1 id="b-asd-nome" class="text-3xl font-black uppercase tracking-tight text-slate-950">---</h1>
+                        <p id="b-asd-info" class="text-xs text-slate-500 font-bold uppercase mt-1">---</p>
+                    </div>
+                    <div class="mt-4 md:mt-0 text-left md:text-right">
+                        <span class="px-3 py-1 bg-amber-100 text-amber-800 rounded-full font-black text-xs uppercase tracking-wider">Rendiconto Finanziario (01/01 - 31/12)</span>
+                        <div class="mt-2">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase mr-1">Anno Fiscale:</label>
+                            <select id="b-seleziona-anno" onchange="aggiornaBilancioAnno()" class="text-xs font-black bg-slate-100 border border-slate-300 rounded px-2 py-1 uppercase text-slate-900"></select>
+                        </div>
+                        <p class="text-xs text-slate-500 font-bold mt-2">Generato il: <span id="b-data-generazione">--/--/----</span></p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                        <p class="text-[10px] uppercase font-bold text-slate-500">Cassa Contanti</p>
+                        <p id="b-saldo-cassa" class="text-2xl font-black text-slate-900">€ 0.00</p>
+                    </div>
+                    <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                        <p class="text-[10px] uppercase font-bold text-slate-500">Banca / POS</p>
+                        <p id="b-saldo-banca" class="text-2xl font-black text-slate-900">€ 0.00</p>
+                    </div>
+                    <div class="p-4 bg-rose-50 rounded-xl border border-rose-200">
+                        <p class="text-[10px] uppercase font-bold text-rose-800">Carta di Credito</p>
+                        <p id="b-saldo-carta" class="text-2xl font-black text-rose-600">- € 0.00</p>
+                    </div>
+                    <div class="p-4 bg-amber-50 rounded-xl border border-amber-200">
+                        <p class="text-[10px] uppercase font-bold text-amber-800">Disponibilità Liquida</p>
+                        <p id="b-saldo-totale" class="text-2xl font-black text-amber-600">€ 0.00</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div class="border border-slate-100 p-4 rounded-xl">
+                        <h3 class="font-black text-sm uppercase text-emerald-700 border-b pb-2 mb-3">Totale Entrate per Causale</h3>
+                        <div id="b-lista-entrate" class="space-y-2 text-xs"></div>
+                    </div>
+                    <div class="border border-slate-100 p-4 rounded-xl">
+                        <h3 class="font-black text-sm uppercase text-red-700 border-b pb-2 mb-3">Totale Uscite per Causale</h3>
+                        <div id="b-lista-uscite" class="space-y-2 text-xs"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="font-black text-sm uppercase text-slate-800 mb-3">Registro Analitico dei Movimenti (Periodo Selezionato)</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-600 uppercase font-black border-b border-slate-200">
+                                    <th class="p-3">Data</th>
+                                    <th class="p-3">Tipo</th>
+                                    <th class="p-3">Soggetto / Causale</th>
+                                    <th class="p-3 text-right">Cassa Contanti</th>
+                                    <th class="p-3 text-right">Banca / POS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="b-tabella-movimenti" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL REPORT SINGOLO SOCIO CON MOVIMENTI, PARTITE APERTE E STAMPA -->
+    <div id="modal-report-socio-overlay" class="modal-overlay overflow-y-auto">
+        <div id="modal-report-socio-box" class="bg-slate-950 text-white p-6 md:p-10 rounded-[2.5rem] max-w-4xl w-full shadow-2xl border border-white/10 my-8">
+            <div class="flex justify-between items-center mb-6 no-print">
+                <h2 class="text-xl font-black uppercase text-amber-500">Report & Estratto Conto Socio</h2>
+                <div class="flex gap-2">
+                    <button onclick="avviaStampaReportSocio()" class="bg-amber-500 text-slate-900 px-5 py-2.5 rounded-xl font-black uppercase text-[10px] hover:bg-amber-400">Stampa / Salva PDF</button>
+                    <button onclick="chiudiReportSocioModal()" class="bg-slate-800 text-slate-400 px-5 py-2.5 rounded-xl font-black uppercase text-[10px] hover:bg-slate-700">Chiudi</button>
+                </div>
+            </div>
+
+            <div class="mb-6 no-print bg-slate-900 p-4 rounded-2xl border border-white/10 flex items-center gap-4">
+                <label class="text-xs font-black uppercase text-slate-300">Seleziona Socio:</label>
+                <select id="selectReportSocioId" onchange="generaDatiReportSocio()" class="input-dark uppercase text-xs font-bold max-w-md"></select>
+            </div>
+            
+            <div id="report-socio-stampa-content" class="bg-white text-slate-900 p-8 rounded-2xl">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-6 mb-6">
+                    <div>
+                        <h1 id="rs-socio-nome" class="text-2xl font-black uppercase tracking-tight text-slate-950">---</h1>
+                        <p id="rs-socio-info" class="text-xs text-slate-500 font-bold uppercase mt-1">Disciplina: -- | Quota: € 0.00</p>
+                    </div>
+                    <div class="mt-4 md:mt-0 text-left md:text-right">
+                        <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-black text-xs uppercase tracking-wider">Estratto Conto Socio</span>
+                        <p class="text-xs text-slate-500 font-bold mt-2">Data Stampa: <span id="rs-data-generazione">--/--/----</span></p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+                    <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                        <p class="text-[10px] uppercase font-bold text-slate-500">Totale Versato</p>
+                        <p id="rs-totale-versato" class="text-2xl font-black text-emerald-600">€ 0.00</p>
+                    </div>
+                    <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                        <p class="text-[10px] uppercase font-bold text-slate-500">Movimenti Registrati</p>
+                        <p id="rs-totale-movimenti" class="text-2xl font-black text-slate-900">0</p>
+                    </div>
+                    <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                        <p class="text-[10px] uppercase font-bold text-slate-500">Stato Posizione</p>
+                        <p id="rs-stato-posizione" class="text-lg font-black text-slate-900">--</p>
+                    </div>
+                </div>
+
+                <!-- SEZIONE PARTITE APERTE / MESI SCOPERTI -->
+                <div id="rs-box-partite-aperte" class="mb-8 hidden">
+                    <h3 class="font-black text-sm uppercase text-rose-700 mb-3 flex items-center gap-2">
+                        <span>⚠️ Partite Aperte / Mesi Scoperti</span>
+                    </h3>
+                    <div class="bg-rose-50 border border-rose-200 rounded-xl p-4">
+                        <div id="rs-lista-partite-aperte" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-xs"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="font-black text-sm uppercase text-slate-800 mb-3">Storico Movimenti Contabili</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-600 uppercase font-black border-b border-slate-200">
+                                    <th class="p-3">Data</th>
+                                    <th class="p-3">Causale / Dettaglio</th>
+                                    <th class="p-3">Metodo</th>
+                                    <th class="p-3 text-right">Importo</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rs-tabella-movimenti" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenuto Principale -->
+    <div id="main-content" class="max-w-7xl mx-auto">
+        <header class="flex justify-between items-center mb-8">
+            <div class="flex items-center gap-4">
+                <div id="header-logo" class="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center font-black italic text-xl text-white">
+                    <img src="logo.png" alt="Logo" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+                </div>
+                <h1 id="header-titolo" class="text-3xl font-black italic uppercase text-amber-400">CONTABILITÀ</h1>
+            </div>
+            <div class="flex gap-2 flex-wrap">
+                <button onclick="apriReportSocioModal()" class="bg-blue-600 text-white px-4 py-3 rounded-xl font-black uppercase text-[10px] hover:bg-blue-500 transition">Report Socio</button>
+                <button onclick="apriBilancio()" class="bg-amber-500 text-slate-900 px-4 py-3 rounded-xl font-black uppercase text-[10px] hover:bg-amber-400 transition">Genera Bilancio</button>
+                <a href="index.html" id="btnIndietro" class="bg-slate-800 px-6 py-3 rounded-xl font-black uppercase text-[10px] hover:bg-slate-700 transition">Indietro</a>
+            </div>
+        </header>
+
+        <!-- METRICHE -->
+        <div id="stats" class="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <div class="lg:col-span-1">
+                <div id="form-container" class="glass p-6 rounded-[2rem] border-t-4 border-amber-500 shadow-2xl sticky top-6">
+                    <h2 class="text-lg font-black uppercase text-amber-500 mb-6" id="form-title">Registra</h2>
+                    
+                    <div class="flex gap-1 mb-6 p-1 bg-slate-900/50 rounded-2xl">
+                        <button onclick="setTipo('ENTRATA')" id="btnE" class="flex-1 py-2.5 rounded-xl font-black text-[9px] uppercase bg-emerald-600 text-white">Entrata</button>
+                        <button onclick="setTipo('USCITA')" id="btnU" class="flex-1 py-2.5 rounded-xl font-black text-[9px] uppercase bg-slate-800 text-slate-500">Uscita</button>
+                        <button onclick="setTipo('GIROCONTO')" id="btnG" class="flex-1 py-2.5 rounded-xl font-black text-[9px] uppercase bg-slate-800 text-slate-500">Giroconto</button>
+                    </div>
+                    
+                    <input type="hidden" id="tipoOp" value="ENTRATA">
+                    <input type="hidden" id="editId" value="">
+                    
+                    <div class="space-y-4">
+                        <div id="boxGiroconto" class="hidden space-y-4">
+                            <label class="text-[10px] font-black uppercase text-amber-500">Operazione Giroconto</label>
+                            <select id="selDirezioneGiro" class="input-dark text-[10px] font-bold uppercase">
+                                <option value="CASSA_BANCA">VERSAMENTO IN BANCA 🏦 (CASSA ➔ BANCA)</option>
+                                <option value="BANCA_CASSA">PRELIEVO CONTANTI 💵 (BANCA ➔ CASSA)</option>
+                                <option value="BANCA_CARTA">SALDO CARTA DI CREDITO 💳 (BANCA ➔ CARTA)</option>
+                            </select>
+                        </div>
+
+                        <div id="boxNormalCausale">
+                            <select id="selCausale" onchange="gestisciCambioCausale()" class="input-dark text-[10px] font-bold uppercase"></select>
+                            
+                            <div id="boxCausaleAltro" class="hidden mt-2">
+                                <input id="inCausaleAltro" class="input-dark uppercase text-xs" placeholder="SPECIFICA CAUSALE...">
+                            </div>
+                            <button type="button" id="btnOpenModalElargizione" onclick="apriModalElargizione()" class="hidden w-full mt-2 bg-amber-500/20 text-amber-400 border border-amber-500/30 font-black py-2 rounded-xl text-[10px] uppercase hover:bg-amber-500 hover:text-slate-900 transition">✏️ Compila Dati Elargitore</button>
+                        </div>
+
+                        <div id="boxSocio">
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="text-[10px] font-black text-slate-400 uppercase">Seleziona Membro / Atleta</label>
+                                <div class="flex gap-1">
+                                    <button type="button" onclick="apriModalModificaMembro()" class="text-[9px] text-amber-400 hover:underline uppercase font-bold">Modifica</button>
+                                    <span id="sepEliminaMembro" class="text-slate-600">|</span>
+                                    <button type="button" id="btnEliminaMembro" onclick="eliminaMembroSelezionato()" class="text-[9px] text-red-400 hover:underline uppercase font-bold">Elimina</button>
+                                </div>
+                            </div>
+                            <select id="selSocio" onchange="gestisciCambioSocio()" class="input-dark uppercase text-xs font-bold"></select>
+                        </div>
+                        
+                        <div id="boxRiepilogoSocio" class="hidden riepilogo-socio-container">
+                            <h3 class="font-black text-amber-400 text-xs mb-2">RIEPILOGO SOCIO</h3>
+                            <div id="socioStatoBadge" class="badge-scoperto">--</div>
+                            
+                            <div class="info-line"><span>Disciplina:</span> <strong id="socio-disciplina" class="text-white">--</strong></div>
+                            <div class="info-line"><span>Quota Standard:</span> <strong id="socio-quota" class="text-amber-300">€ 0.00</strong></div>
+                            <div class="info-line"><span>Mesi Pagati / Dovuti:</span> <strong id="socio-mesi-status">0 / 0</strong></div>
+                            
+                            <div class="sezione-arretrati">
+                                <h4 class="text-[10px] font-bold text-slate-300 uppercase">Seleziona Mesi da pagare / Abbuono:</h4>
+                                <div id="lista-mesi-arretrati" class="lista-mesi-grid"></div>
+                            </div>
+
+                            <div class="totale-selezionato">
+                                <span class="font-bold text-xs uppercase">Totale Selezionato:</span> <strong id="importo-totale-pagamento" class="text-amber-400">€ 0.00</strong>
+                            </div>
+
+                            <div class="cronologia-socio-box">
+                                <h4 class="text-[10px] font-bold text-amber-400 uppercase">Cronologia Pagamenti Socio:</h4>
+                                <div id="lista-cronologia-socio" class="cronologia-lista"></div>
+                            </div>
+                        </div>
+
+                        <div id="boxNomeLibero" class="hidden">
+                            <input id="inNomeLibero" class="input-dark uppercase text-xs" placeholder="DESCRIZIONE / NOME...">
+                        </div>
+
+                        <div id="boxAttivita">
+                            <select id="inAttivita" class="input-dark uppercase text-xs font-bold border-blue-500/30">
+                                <option value="">-- SELEZIONA DISCIPLINA --</option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div id="boxMetodo">
+                                <select id="selMetodo" class="input-dark text-[10px] font-bold uppercase">
+                                    <option value="CONTANTI">CONTANTI</option>
+                                    <option value="BONIFICO">BONIFICO</option>
+                                    <option value="POS">POS</option>
+                                    <option value="CARTA_CREDITO">CARTA DI CREDITO 💳</option>
+                                </select>
+                            </div>
+                            <input id="inImporto" type="number" step="0.01" class="input-dark font-black text-amber-400 col-span-1" placeholder="€">
+                        </div>
+                        
+                        <input id="inData" type="date" class="input-dark text-[10px]">
+                        
+                        <button id="btnSalva" onclick="salva()" class="w-full bg-amber-500 py-5 rounded-2xl font-black uppercase text-slate-900 shadow-xl hover:bg-amber-400 transition-all">Salva</button>
+                        <button id="btnReset" onclick="annullaModifica()" class="w-full text-[9px] font-black uppercase text-slate-500 mt-2 hidden">Annulla / Reset</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-3 space-y-4">
+                <div class="glass p-4 rounded-3xl grid grid-cols-1 md:grid-cols-5 gap-3">
+                    <input type="text" id="filtroNome" onkeyup="render()" placeholder="CERCA NOME..." class="input-dark text-[10px] font-black uppercase">
+                    
+                    <select id="filtroStato" onchange="render()" class="input-dark text-[10px] font-black uppercase">
+                        <option value="TUTTI">TUTTI</option>
+                        <option value="SCADUTE">SOLO SCADUTE 🔴</option>
+                        <option value="VALIDE">SOLO VALIDE 🟢</option>
+                        <option value="STANDBY">SOLO IN STAND BY 🟠</option>
+                    </select>
+
+                    <input type="text" id="filtroMeseAtt" onkeyup="render()" placeholder="FILTRA ATTIVITÀ..." class="input-dark text-[10px] font-black uppercase">
+                    
+                    <!-- NUOVO FILTRO MESE PER MESE -->
+                    <select id="filtroMeseAnno" onchange="render()" class="input-dark text-[10px] font-black uppercase">
+                        <option value="TUTTI_MESI">TUTTI I MESI</option>
+                    </select>
+
+                    <button onclick="resetFiltri()" class="bg-slate-800 text-white rounded-xl text-[9px] font-black uppercase hover:bg-slate-700">Reset</button>
+                </div>
+
+                <div class="glass rounded-[2.5rem] overflow-hidden border border-white/5 shadow-2xl">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-800/80 text-[10px] uppercase text-slate-400 font-black">
+                            <tr>
+                                <th class="p-5">Data Pagamento</th>
+                                <th class="p-5">Soggetto / Metodo</th>
+                                <th class="p-5 text-center">Stato Scadenza</th>
+                                <th class="p-5 text-right">Importo</th>
+                                <th class="p-5 text-right">Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabella" class="divide-y divide-white/5"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Modifica Membro -->
+    <div id="modal-modifica-membro-overlay" class="modal-overlay">
+        <div class="bg-slate-900 border border-slate-700 text-white p-6 md:p-8 rounded-[2.5rem] max-w-md w-full shadow-2xl">
+            <h2 class="text-xl font-black uppercase text-amber-500 mb-1 text-center">Modifica Dati Membro</h2>
+            <p class="text-[11px] text-slate-400 font-bold text-center mb-6 uppercase">Aggiorna le informazioni dell'atleta</p>
+            
+            <input type="hidden" id="modMembroId">
+            <div class="space-y-4">
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase">Nome</label>
+                    <input id="modMembroNome" class="input-dark text-xs uppercase mt-1">
+                </div>
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase">Cognome</label>
+                    <input id="modMembroCognome" class="input-dark text-xs uppercase mt-1">
+                </div>
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase">Disciplina</label>
+                    <input id="modMembroDisciplina" class="input-dark text-xs uppercase mt-1">
+                </div>
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase">Quota Mensile (€)</label>
+                    <input id="modMembroQuota" type="number" step="0.01" class="input-dark text-xs uppercase mt-1">
+                </div>
+                <div class="flex items-center gap-3 p-3 bg-slate-950 rounded-2xl border border-white/10">
+                    <input type="checkbox" id="modMembroStandby" class="w-5 h-5 accent-amber-500">
+                    <div>
+                        <label class="text-[10px] font-black text-amber-400 uppercase block">Membro in Stand By</label>
+                        <p class="text-[9px] text-slate-400 uppercase">Sospende il conteggio delle mensilità arretrate</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 flex gap-3">
+                <button type="button" onclick="salvaModificaMembro()" class="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-900 font-black py-4 rounded-2xl uppercase text-xs transition shadow-lg">Salva Modifiche</button>
+                <button type="button" onclick="chiudiModalModificaMembro()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-5 py-4 rounded-2xl uppercase text-xs transition">Annulla</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let soci = JSON.parse(localStorage.getItem('asd_soci')) || [];
+        let pagamenti = JSON.parse(localStorage.getItem('asd_pagamenti')) || [];
+        let causaliUscite = JSON.parse(localStorage.getItem('asd_causali_uscite')) || [];
+        let config = JSON.parse(localStorage.getItem('asd_config')) || { nome: 'ASD IKSA', cf: '', indirizzo: '', discipline: [], giornoAddebitoCarta: 27, logo: 'logo.png' };
+        if (!config.giornoAddebitoCarta) config.giornoAddebitoCarta = 27;
+        let currentReceipt = null;
+        let currentElargitoreData = null;
+        let mesiSocio = [];
+        
+        // GESTIONE TASTIERA GLOBALE
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                if (document.getElementById('modal-overlay').style.display === 'flex') {
+                    chiudiRicevuta();
+                } else if (document.getElementById('modal-bilancio-overlay').style.display === 'block') {
+                    chiudiBilancio();
+                } else if (document.getElementById('modal-report-socio-overlay').style.display === 'block') {
+                    chiudiReportSocioModal();
+                } else if (document.getElementById('modal-elargizione-overlay').style.display === 'flex') {
+                    chiudiModalElargizione();
+                } else if (document.getElementById('modal-modifica-membro-overlay').style.display === 'flex') {
+                    chiudiModalModificaMembro();
+                } else {
+                    annullaModifica();
+                }
+            } else if (event.key === 'Enter') {
+                const target = event.target;
+                if (target.tagName === 'TEXTAREA') return;
+
+                if (target.id === 'inImporto' || target.id === 'inData' || target.id === 'inCausaleAltro') {
+                    event.preventDefault();
+                    salva();
+                    return;
+                }
+
+                const container = document.getElementById('form-container');
+                if (container && container.contains(target)) {
+                    const focusables = Array.from(container.querySelectorAll('input:not([type="hidden"]), select, button'))
+                        .filter(el => el.offsetParent !== null && !el.disabled);
+                    const index = focusables.indexOf(target);
+                    if (index > -1 && index < focusables.length - 1) {
+                        event.preventDefault();
+                        focusables[index + 1].focus();
+                    }
+                }
+            } else if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+                const target = event.target;
+                const container = document.getElementById('form-container');
+                if (container && container.contains(target)) {
+                    const focusables = Array.from(container.querySelectorAll('input:not([type="hidden"]), select, button'))
+                        .filter(el => el.offsetParent !== null && !el.disabled);
+                    const index = focusables.indexOf(target);
+                    if (index > -1) {
+                        event.preventDefault();
+                        const nextIndex = event.key === 'ArrowRight' ? (index + 1) % focusables.length : (index - 1 + focusables.length) % focusables.length;
+                        focusables[nextIndex].focus();
+                    }
+                }
+            }
+        });
+
+        function isQuotaMensile(causale) {
+            if (!causale) return false;
+            const c = String(causale).toUpperCase();
+            return c.includes("QUOTA") || c.includes("MENSILE");
+        }
+
+        function pulisciTesto(str) {
+            if (!str) return '';
+            return str.toString().replace(/\s+/g, ' ').trim().toUpperCase();
+        }
+
+        function init() {
+            rigeneraNumerazioneProgressiva();
+
+            const headerLogo = document.getElementById('header-logo');
+            const receiptLogo = document.getElementById('receipt-logo');
+            
+            if (config.logo) {
+                headerLogo.innerHTML = `<img src="${config.logo}" class="h-10 w-10 object-contain">`;
+                receiptLogo.innerHTML = `<img src="${config.logo}" class="h-14 w-14 object-contain">`;
+            }
+
+            document.getElementById('header-titolo').innerText = `CONTABILITÀ ${config.nome || ''}`;
+            document.getElementById('inData').valueAsDate = new Date();
+            popolaSoci();
+            popolaAttivita();
+            popolaFiltroMesi(); // Inizializza il selettore mese per mese
+            setTipo('ENTRATA');
+            render();
+
+            setTimeout(() => {
+                mettiFuocoPrimoCampo();
+            }, 100);
+        }
+
+        function popolaFiltroMesi() {
+            const selMeseAnno = document.getElementById('filtroMeseAnno');
+            if (!selMeseAnno) return;
+            
+            const valoreCorrente = selMeseAnno.value;
+            let mesiSet = new Set();
+            
+            pagamenti.forEach(p => {
+                if (p && p.data) {
+                    const parti = p.data.split('-');
+                    if (parti.length >= 2) {
+                        const anno = parti[0];
+                        const mese = parti[1];
+                        mesiSet.add(`${anno}-${mese}`);
+                    }
+                }
+            });
+
+            // Ordina i mesi dal più recente al meno recente
+            const mesiOrdinati = Array.from(mesiSet).sort().reverse();
+            
+            let html = '<option value="TUTTI_MESI">TUTTI I MESI</option>';
+            const NomiMesi = {
+                "01": "Gennaio", "02": "Febbraio", "03": "Marzo", "04": "Aprile",
+                "05": "Maggio", "06": "Giugno", "07": "Luglio", "08": "Agosto",
+                "09": "Settembre", "10": "Ottobre", "11": "Novembre", "12": "Dicembre"
+            };
+
+            mesiOrdinati.forEach(mStr => {
+                const [anno, mese] = mStr.split('-');
+                const nomeMese = NomiMesi[mese] || mese;
+                html += `<option value="${mStr}">${nomeMese} ${anno}</option>`;
+            });
+
+            selMeseAnno.innerHTML = html;
+            if (valoreCorrente && Array.from(selMeseAnno.options).some(o => o.value === valoreCorrente)) {
+                selMeseAnno.value = valoreCorrente;
+            }
+        }
+
+        function mettiFuocoPrimoCampo() {
+            const container = document.getElementById('form-container');
+            if (!container) return;
+            const visibili = Array.from(container.querySelectorAll('input:not([type="hidden"]), select, button'))
+                .filter(el => el.offsetParent !== null && !el.disabled);
+            if (visibili.length > 0) {
+                visibili[0].focus();
+            }
+        }
+
+        function cambiaGiornoAddebito(val) {
+            let d = parseInt(val, 10);
+            if (isNaN(d) || d < 1) d = 1;
+            if (d > 31) d = 31;
+            config.giornoAddebitoCarta = d;
+            localStorage.setItem('asd_config', JSON.stringify(config));
+            render();
+        }
+
+        function popolaAttivita() {
+            const select = document.getElementById('inAttivita');
+            if (!select || select.tagName !== 'SELECT') return;
+
+            let listaAttivita = new Set();
+
+            if (config.discipline && Array.isArray(config.discipline)) {
+                config.discipline.forEach(d => {
+                    const pulito = pulisciTesto(d);
+                    if (pulito !== '') listaAttivita.add(pulito);
+                });
+            }
+
+            soci.forEach(s => {
+                const discSocio = pulisciTesto(s.disciplina || s.attivita || s.corso || s.discipline);
+                if (discSocio !== '') {
+                    listaAttivita.add(discSocio);
+                }
+            });
+
+            if (listaAttivita.size === 0) {
+                ["KARATE", "GINNASTICA", "DIFESA PERSONALE", "KICKBOXING"].forEach(a => listaAttivita.add(a));
+            }
+
+            const ordinate = Array.from(listaAttivita).sort();
+            select.innerHTML = '<option value="">-- SELEZIONA DISCIPLINA --</option>' +
+                ordinate.map(att => `<option value="${att}">${att}</option>`).join('');
+        }
+
+        function popolaCausali(tipo) {
+            const sel = document.getElementById('selCausale');
+            if (!sel) return;
+
+            if (tipo === 'ENTRATA') {
+                sel.innerHTML = `
+                    <option value="ELARGIZIONE VOLONTARIA" selected>ELARGIZIONE VOLONTARIA</option>
+                    <option value="QUOTA MENSILE">QUOTA MENSILE</option>
+                    <option value="TESSERAMENTO">TESSERAMENTO</option>
+                    <option value="ISCRIZIONE GARA">GARA</option>
+                    <option value="ALTRO">ALTRO</option>
+                `;
+            } else if (tipo === 'USCITA') {
+                let html = '';
+                causaliUscite.forEach(c => {
+                    html += `<option value="${c}">${c}</option>`;
+                });
+                html += `<option value="ALTRO" selected>ALTRO</option>`;
+                sel.innerHTML = html;
+            }
+            gestisciCambioCausale();
+        }
+
+        function apriModalElargizione() {
+            document.getElementById('modal-elargizione-overlay').style.display = 'flex';
+            if (currentElargitoreData) {
+                setTipoElargitore(currentElargitoreData.tipo || 'PERSONA_FISICA');
+                if (currentElargitoreData.tipo === 'SOCIETA') {
+                    document.getElementById('elargSocNome').value = currentElargitoreData.nome || '';
+                    document.getElementById('elargSocPiva').value = currentElargitoreData.piva || '';
+                    document.getElementById('elargSocVia').value = currentElargitoreData.via || '';
+                    document.getElementById('elargSocCivico').value = currentElargitoreData.civico || '';
+                    document.getElementById('elargSocCap').value = currentElargitoreData.cap || '';
+                    document.getElementById('elargSocComune').value = currentElargitoreData.comune || '';
+                    document.getElementById('elargSocProv').value = currentElargitoreData.prov || '';
+                } else {
+                    document.getElementById('elargPfNome').value = currentElargitoreData.nome || '';
+                    document.getElementById('elargPfCf').value = currentElargitoreData.cf || '';
+                    document.getElementById('elargPfVia').value = currentElargitoreData.via || '';
+                    document.getElementById('elargPfCivico').value = currentElargitoreData.civico || '';
+                    document.getElementById('elargPfCap').value = currentElargitoreData.cap || '';
+                    document.getElementById('elargPfComune').value = currentElargitoreData.comune || '';
+                    document.getElementById('elargPfProv').value = currentElargitoreData.prov || '';
+                }
+            } else {
+                setTipoElargitore('PERSONA_FISICA');
+            }
+        }
+
+        function chiudiModalElargizione() {
+            document.getElementById('modal-elargizione-overlay').style.display = 'none';
+        }
+
+        function setTipoElargitore(t) {
+            document.getElementById('elargTipo').value = t;
+            const btnPF = document.getElementById('btnElargPF');
+            const btnSoc = document.getElementById('btnElargSoc');
+            const boxPF = document.getElementById('boxElargPF');
+            const boxSoc = document.getElementById('boxElargSoc');
+
+            if (t === 'PERSONA_FISICA') {
+                btnPF.className = "flex-1 py-3 rounded-xl font-black text-[10px] uppercase bg-amber-500 text-slate-900 transition";
+                btnSoc.className = "flex-1 py-3 rounded-xl font-black text-[10px] uppercase bg-slate-800 text-slate-400 transition";
+                boxPF.classList.remove('hidden');
+                boxSoc.classList.add('hidden');
+            } else {
+                btnSoc.className = "flex-1 py-3 rounded-xl font-black text-[10px] uppercase bg-amber-500 text-slate-900 transition";
+                btnPF.className = "flex-1 py-3 rounded-xl font-black text-[10px] uppercase bg-slate-800 text-slate-400 transition";
+                boxSoc.classList.remove('hidden');
+                boxPF.classList.add('hidden');
+            }
+        }
+
+        function componeIndirizzo(via, civico, cap, comune, prov) {
+            let parti = [];
+            if (via) {
+                let v = via;
+                if (civico) v += `, ${civico}`;
+                parti.push(v);
+            }
+            let loc = [];
+            if (cap) loc.push(cap);
+            if (comune) loc.push(comune);
+            if (prov) loc.push(`(${prov})`);
+            if (loc.length > 0) parti.push(loc.join(' '));
+            return parti.join(' - ');
+        }
+
+        function confermaElargizione() {
+            const tipo = document.getElementById('elargTipo').value;
+            
+            if (tipo === 'PERSONA_FISICA') {
+                const nome = pulisciTesto(document.getElementById('elargPfNome').value);
+                if (!nome) {
+                    alert("Errore: Inserire Nome e Cognome per Persona Fisica!");
+                    return;
+                }
+                currentElargitoreData = {
+                    tipo: 'PERSONA_FISICA',
+                    nome: nome,
+                    cf: pulisciTesto(document.getElementById('elargPfCf').value),
+                    via: pulisciTesto(document.getElementById('elargPfVia').value),
+                    civico: pulisciTesto(document.getElementById('elargPfCivico').value),
+                    cap: pulisciTesto(document.getElementById('elargPfCap').value),
+                    comune: pulisciTesto(document.getElementById('elargPfComune').value),
+                    prov: pulisciTesto(document.getElementById('elargPfProv').value),
+                    indirizzoCompleto: componeIndirizzo(document.getElementById('elargPfVia').value, document.getElementById('elargPfCivico').value, document.getElementById('elargPfCap').value, document.getElementById('elargPfComune').value, document.getElementById('elargPfProv').value)
+                };
+                document.getElementById('inNomeLibero').value = nome;
+            } else {
+                const nomeSoc = pulisciTesto(document.getElementById('elargSocNome').value);
+                if (!nomeSoc) {
+                    alert("Errore: Inserire la Ragione Sociale / Nome Ditta!");
+                    return;
+                }
+                currentElargitoreData = {
+                    tipo: 'SOCIETA',
+                    nome: nomeSoc,
+                    piva: pulisciTesto(document.getElementById('elargSocPiva').value),
+                    via: pulisciTesto(document.getElementById('elargSocVia').value),
+                    civico: pulisciTesto(document.getElementById('elargSocCivico').value),
+                    cap: pulisciTesto(document.getElementById('elargSocCap').value),
+                    comune: pulisciTesto(document.getElementById('elargSocComune').value),
+                    prov: pulisciTesto(document.getElementById('elargSocProv').value),
+                    indirizzoCompleto: componeIndirizzo(document.getElementById('elargSocVia').value, document.getElementById('elargSocCivico').value, document.getElementById('elargSocCap').value, document.getElementById('elargSocComune').value, document.getElementById('elargSocProv').value)
+                };
+                document.getElementById('inNomeLibero').value = nomeSoc;
+            }
+
+            chiudiModalElargizione();
+            salva();
+        }
+
+        function gestisciCambioCausale() {
+            const causaleSel = document.getElementById('selCausale').value;
+            const boxAltro = document.getElementById('boxCausaleAltro');
+            const btnElarg = document.getElementById('btnOpenModalElargizione');
+            const btnEliminaMembro = document.getElementById('btnEliminaMembro');
+            const sepEliminaMembro = document.getElementById('sepEliminaMembro');
+
+            if (causaleSel === 'QUOTA MENSILE') {
+                if (btnEliminaMembro) btnEliminaMembro.classList.add('hidden');
+                if (sepEliminaMembro) sepEliminaMembro.classList.add('hidden');
+            } else {
+                if (btnEliminaMembro) btnEliminaMembro.classList.remove('hidden');
+                if (sepEliminaMembro) sepEliminaMembro.classList.remove('hidden');
+            }
+
+            if (causaleSel === 'ALTRO') {
+                boxAltro.classList.remove('hidden');
+            } else {
+                boxAltro.classList.add('hidden');
+                document.getElementById('inCausaleAltro').value = '';
+            }
+
+            if (causaleSel === 'ELARGIZIONE VOLONTARIA') {
+                document.getElementById('boxSocio').classList.add('hidden');
+                document.getElementById('boxRiepilogoSocio').classList.add('hidden');
+                document.getElementById('boxNomeLibero').classList.remove('hidden');
+                if (btnElarg) btnElarg.classList.remove('hidden');
+            } else {
+                if (btnElarg) btnElarg.classList.add('hidden');
+                const tipo = document.getElementById('tipoOp').value;
+                if (tipo === 'ENTRATA') {
+                    document.getElementById('boxSocio').classList.remove('hidden');
+                    document.getElementById('boxNomeLibero').classList.add('hidden');
+                    if (document.getElementById('selSocio').value) {
+                        document.getElementById('boxRiepilogoSocio').classList.remove('hidden');
+                    }
+                }
+            }
+
+            if (causaleSel === 'QUOTA MENSILE') {
+                gestisciCambioSocio();
+            }
+        }
+
+        function gestisciCambioSocio() {
+            const sid = document.getElementById('selSocio').value;
+            const boxRiepilogo = document.getElementById('boxRiepilogoSocio');
+
+            if (!sid) {
+                if (boxRiepilogo) boxRiepilogo.classList.add('hidden');
+                return;
+            }
+
+            const s = soci.find(x => x.id == sid);
+            if (s) {
+                if (boxRiepilogo) boxRiepilogo.classList.remove('hidden');
+
+                const discSocio = pulisciTesto(s.disciplina || s.attivita || s.corso || s.discipline || 'NON SPECIFICATA');
+                document.getElementById('socio-disciplina').innerText = discSocio;
+
+                const qStd = parseFloat(s.quotaMensile || s.quota || 0);
+                document.getElementById('socio-quota').innerText = `€ ${qStd.toFixed(2)}`;
+
+                const oggi = new Date();
+                oggi.setHours(0,0,0,0);
+                const meseCorrente = oggi.getMonth();
+                const annoCorrente = oggi.getFullYear();
+
+                const pagSocio = pagamenti.filter(x => {
+                    if (!x || x.socioId != s.id || x.tipo !== 'ENTRATA') return false;
+                    const cUpper = (x.causale || "").toUpperCase();
+                    return (cUpper.includes("QUOTA") || cUpper.includes("MENSILE")) && !cUpper.includes("TESSER") && !cUpper.includes("ISCRIZ");
+                });
+
+                let dataInizioStorico = s.dataIscrizione || s.dataInizio || (pagSocio.length > 0 ? pagSocio.sort((a,b) => new Date(a.data) - new Date(b.data))[0].data : null);
+
+                let mesiGiaPagatiSet = new Set();
+                pagSocio.forEach(p => {
+                    let cUp = (p.causale || "").toUpperCase();
+                    if (cUp.includes("(")) {
+                        let matchMesi = cUp.substring(cUp.indexOf('(') + 1, cUp.indexOf(')'));
+                        matchMesi.split(',').forEach(mStr => {
+                            mesiGiaPagatiSet.add(mStr.trim());
+                        });
+                    }
+                });
+
+                mesiSocio = [];
+                let mesiScopertiCount = 0;
+                const inStandBy = s.inStandby === true || s.standby === true || String(s.stato || '').toUpperCase().includes('STANDBY');
+
+                if (dataInizioStorico && !inStandBy) {
+                    let dInizio = new Date(dataInizioStorico);
+                    if (!isNaN(dInizio.getTime())) {
+                        let currentIterDate = new Date(dInizio.getFullYear(), dInizio.getMonth(), 1);
+                        let limiteIterDate = new Date(annoCorrente, meseCorrente, 1);
+
+                        while (currentIterDate <= limiteIterDate) {
+                            let nomeMeseAnno = currentIterDate.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
+                            nomeMeseAnno = nomeMeseAnno.charAt(0).toUpperCase() + nomeMeseAnno.slice(1);
+
+                            let giaPagato = mesiGiaPagatiSet.has(nomeMeseAnno.toUpperCase()) || 
+                                           Array.from(mesiGiaPagatiSet).some(m => nomeMeseAnno.toUpperCase().includes(m)) ||
+                                           (mesiSocio.filter(m => m.pagato).length < pagSocio.length && mesiGiaPagatiSet.size === 0);
+
+                            if (!giaPagato) {
+                                mesiScopertiCount++;
+                            }
+
+                            mesiSocio.push({
+                                mese: nomeMeseAnno,
+                                pagato: giaPagato,
+                                importo: qStd > 0 ? qStd : 30
+                            });
+
+                            currentIterDate.setMonth(currentIterDate.getMonth() + 1);
+                        }
+                    }
+                } else if (!inStandBy && mesiSocio.length === 0) {
+                    let nomeMeseCorrente = oggi.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
+                    nomeMeseCorrente = nomeMeseCorrente.charAt(0).toUpperCase() + nomeMeseCorrente.slice(1);
+                    let giaPagato = mesiGiaPagatiSet.has(nomeMeseCorrente.toUpperCase());
+                    
+                    mesiSocio = [
+                        { mese: nomeMeseCorrente, pagato: giaPagato, importo: qStd > 0 ? qStd : 30 }
+                    ];
+                    if (!giaPagato) mesiScopertiCount = 1;
+                }
+
+                renderMesiArretrati();
+                renderCronologiaSocio(s.id);
+
+                let isScaduto = mesiScopertiCount > 0;
+                const badge = document.getElementById('socioStatoBadge');
+
+                if (inStandBy) {
+                    badge.className = "badge-scoperto bg-amber-500/20 text-amber-400 border border-amber-500/30";
+                    badge.innerText = "🟠 IN STAND BY (MENSILITÀ SOSPESE)";
+                } else if (isScaduto) {
+                    badge.className = "badge-scoperto bg-red-500/20 text-red-400 border border-red-500/30";
+                    badge.innerText = "🔴 SCOPERTO / ARRETRATO";
+                } else {
+                    badge.className = "badge-scoperto bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+                    badge.innerText = "🟢 IN REGOLA";
+                }
+
+                const fieldAttivita = document.getElementById('inAttivita');
+                if (fieldAttivita && discSocio && discSocio !== 'NON SPECIFICATA') {
+                    if (fieldAttivita.tagName === 'SELECT') {
+                        let optEsistente = Array.from(fieldAttivita.options).some(o => pulisciTesto(o.value) === discSocio);
+                        if (!optEsistente) {
+                            const opt = document.createElement('option');
+                            opt.value = discSocio;
+                            opt.text = discSocio;
+                            fieldAttivita.add(opt);
+                        }
+                        fieldAttivita.value = discSocio;
+                    }
+                }
+            }
+        }
+
+        function renderMesiArretrati() {
+            const container = document.getElementById('lista-mesi-arretrati');
+            if (!container) return;
+            container.innerHTML = '';
+            
+            let pagatiCount = mesiSocio.filter(m => m.pagato).length;
+            const statusEl = document.getElementById('socio-mesi-status');
+            if(statusEl) statusEl.innerText = `${pagatiCount} / ${mesiSocio.length}`;
+
+            mesiSocio.forEach((item, index) => {
+                if (!item.pagato) {
+                    const div = document.createElement('div');
+                    div.className = 'mese-item';
+                    div.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+                            <input type="checkbox" data-index="${index}" onchange="aggiornaTotaleSelezionato(this)">
+                            <span style="font-size: 12px;">${item.mese}</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="color: #ffbc42; font-weight: bold;">€ ${item.importo.toFixed(2)}</span>
+                            <button type="button" onclick="abbuonaMese(${index})" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.4); padding: 3px 6px; border-radius: 4px; font-size: 9px; font-weight: bold; cursor: pointer;" title="Abbuona con quota simbolica 0.01€">Abbuona (€0.01)</button>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                }
+            });
+            aggiornaTotaleSelezionato(null);
+        }
+
+        function abbuonaMese(index) {
+            if (confirm(`Vuoi abbuonare il mese di "${mesiSocio[index].mese}" con la quota simbolica di 0.01€?`)) {
+                mesiSocio[index].importo = 0.01;
+                mesiSocio[index].abbuonato = true;
+                renderMesiArretrati();
+                const chk = document.querySelector(`input[data-index="${index}"]`);
+                if (chk) {
+                    chk.checked = true;
+                    aggiornaTotaleSelezionato(chk);
+                }
+            }
+        }
+
+        function renderCronologiaSocio(socioId) {
+            const container = document.getElementById('lista-cronologia-socio');
+            if (!container) return;
+            
+            const pagSocioTutti = pagamenti.filter(x => x && (x.socioId == socioId || (x.nome && soci.find(s => s.id == socioId && pulisciTesto(`${s.cognome} ${s.nome}`) === pulisciTesto(x.nome)))));
+            
+            if (pagSocioTutti.length === 0) {
+                container.innerHTML = `<span class="text-[11px] text-slate-400 italic">Nessun pagamento registrato.</span>`;
+                return;
+            }
+
+            pagSocioTutti.sort((a, b) => new Date(b.data) - new Date(a.data));
+
+            container.innerHTML = pagSocioTutti.map(p => {
+                const dataF = p.data ? p.data.split('-').reverse().join('/') : '--/--/----';
+                return `
+                    <div class="cronologia-item">
+                        <div>
+                            <span class="font-bold text-slate-300">${dataF}</span> - <span class="text-amber-300">${p.causale}</span>
+                        </div>
+                        <div class="font-black text-emerald-400">
+                            € ${parseFloat(p.importo).toFixed(2)}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function aggiornaTotaleSelezionato(checkbox) {
+            let totale = 0;
+            const checkboxes = document.querySelectorAll('.lista-mesi-grid input[type="checkbox"]');
+            
+            checkboxes.forEach(chk => {
+                if (chk.checked) {
+                    let idx = chk.getAttribute('data-index');
+                    totale += mesiSocio[idx].importo;
+                }
+            });
+
+            const importoTotEl = document.getElementById('importo-totale-pagamento');
+            if(importoTotEl) importoTotEl.innerText = `€ ${totale.toFixed(2)}`;
+            
+            const inputCassa = document.getElementById('inImporto');
+            if(inputCassa) inputCassa.value = totale > 0 ? totale.toFixed(2) : '';
+        }
+
+        function rigeneraNumerazioneProgressiva() {
+            let entrate = pagamenti.filter(x => x.tipo === 'ENTRATA').sort((a, b) => new Date(a.data) - new Date(b.data));
+            entrate.forEach((rec, index) => {
+                rec.numeroRicevuta = index + 1;
+            });
+            let altriMovimenti = pagamenti.filter(x => x.tipo !== 'ENTRATA');
+            pagamenti = [...entrate, ...altriMovimenti];
+            localStorage.setItem('asd_pagamenti', JSON.stringify(pagamenti));
+        }
+
+        function popolaSoci() {
+            const select = document.getElementById('selSocio');
+            const ordinati = [...soci].sort((a,b) => a.cognome.localeCompare(b.cognome));
+            const opzioniHtml = '<option value="">-- SELEZIONA SOCIO --</option>' + 
+                ordinati.map(s => `<option value="${s.id}">${pulisciTesto(s.cognome)} ${pulisciTesto(s.nome)} ${s.inStandby ? '(STAND BY)' : ''}</option>`).join('');
+            
+            select.innerHTML = opzioniHtml;
+
+            const selectReport = document.getElementById('selectReportSocioId');
+            if (selectReport) {
+                selectReport.innerHTML = opzioniHtml;
+            }
+        }
+
+        function setTipo(t) {
+            document.getElementById('tipoOp').value = t;
+            const btnE = document.getElementById('btnE');
+            const btnU = document.getElementById('btnU');
+            const btnG = document.getElementById('btnG');
+            
+            btnE.className = `flex-1 py-2.5 rounded-xl font-black text-[9px] uppercase ${t === 'ENTRATA' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-500'}`;
+            btnU.className = `flex-1 py-2.5 rounded-xl font-black text-[9px] uppercase ${t === 'USCITA' ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-500'}`;
+            btnG.className = `flex-1 py-2.5 rounded-xl font-black text-[9px] uppercase ${t === 'GIROCONTO' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-500'}`;
+            
+            popolaCausali(t);
+
+            const boxRiep = document.getElementById('boxRiepilogoSocio');
+
+            if (t === 'GIROCONTO') {
+                document.getElementById('boxGiroconto').classList.remove('hidden');
+                document.getElementById('boxNormalCausale').classList.add('hidden');
+                document.getElementById('boxSocio').classList.add('hidden');
+                if(boxRiep) boxRiep.classList.add('hidden');
+                document.getElementById('boxNomeLibero').classList.add('hidden');
+                document.getElementById('boxAttivita').classList.add('hidden');
+                document.getElementById('boxMetodo').classList.add('hidden');
+                document.getElementById('boxCausaleAltro').classList.add('hidden');
+                document.getElementById('inNomeLibero').value = "GIROCONTO INTERNO";
+            } else if (t === 'ENTRATA') {
+                document.getElementById('boxGiroconto').classList.add('hidden');
+                document.getElementById('boxNormalCausale').classList.remove('hidden');
+                document.getElementById('boxSocio').classList.remove('hidden');
+                document.getElementById('boxNomeLibero').classList.add('hidden');
+                document.getElementById('boxAttivita').classList.remove('hidden');
+                document.getElementById('boxMetodo').classList.remove('hidden');
+                gestisciCambioCausale();
+            } else { 
+                document.getElementById('boxGiroconto').classList.add('hidden');
+                document.getElementById('boxNormalCausale').classList.remove('hidden');
+                document.getElementById('boxSocio').classList.add('hidden');
+                if(boxRiep) boxRiep.classList.add('hidden');
+                document.getElementById('boxNomeLibero').classList.remove('hidden');
+                document.getElementById('boxAttivita').classList.remove('hidden');
+                document.getElementById('boxMetodo').classList.remove('hidden');
+                gestisciCambioCausale();
+            }
+        }
+
+        function calcolaDataScadenzaStorica(socioId, dataNuovoPagamento) {
+            if (!dataNuovoPagamento) {
+                const d = new Date();
+                const yyyy = d.getFullYear();
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const dd = String(d.getDate()).padStart(2, '0');
+                return `${yyyy}-${mm}-${dd}`;
+            }
+
+            const parti = dataNuovoPagamento.split('-');
+            if (parti.length !== 3) return dataNuovoPagamento;
+
+            const anno = parseInt(parti[0], 10);
+            const mese = parseInt(parti[1], 10) - 1;
+            const giorno = parseInt(parti[2], 10);
+
+            const dataScadenza = new Date(anno, mese + 1, giorno);
+
+            const yyyy = dataScadenza.getFullYear();
+            const mm = String(dataScadenza.getMonth() + 1).padStart(2, '0');
+            const dd = String(dataScadenza.getDate()).padStart(2, '0');
+
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
+        function salva() {
+            const eid = document.getElementById('editId').value;
+            const tipo = document.getElementById('tipoOp').value;
+            const sid = document.getElementById('selSocio').value;
+            
+            let causale = '';
+            if (tipo === 'GIROCONTO') {
+                causale = 'GIROCONTO INTERNO';
+            } else {
+                const selVal = document.getElementById('selCausale').value;
+                if (selVal === 'ALTRO') {
+                    const specifica = pulisciTesto(document.getElementById('inCausaleAltro').value);
+                    if (!specifica) {
+                        alert("Inserire la causale / descrizione!");
+                        return;
+                    }
+                    causale = specifica;
+
+                    if (tipo === 'USCITA') {
+                        if (!causaliUscite.includes(causale)) {
+                            causaliUscite.push(causale);
+                            localStorage.setItem('asd_causali_uscite', JSON.stringify(causaliUscite));
+                        }
+                    }
+                } else {
+                    causale = selVal;
+                }
+            }
+
+            const dataPagamento = document.getElementById('inData').value;
+            let nomeF = "";
+
+            if (tipo === 'GIROCONTO') {
+                const dir = document.getElementById('selDirezioneGiro').value;
+                if (dir === 'CASSA_BANCA') nomeF = "VERSAMENTO IN BANCA 🏦";
+                else if (dir === 'BANCA_CASSA') nomeF = "PRELIEVO CONTANTI 💵";
+                else if (dir === 'BANCA_CARTA') nomeF = "SALDO CARTA DI CREDITO 💳";
+            } else if (tipo === 'ENTRATA' && causale !== 'ELARGIZIONE VOLONTARIA' && sid) {
+                const s = soci.find(x => x.id == sid);
+                if(s) nomeF = `${s.cognome} ${s.nome}`;
+            } else {
+                nomeF = document.getElementById('inNomeLibero').value;
+            }
+
+            if(!nomeF || !document.getElementById('inImporto').value) {
+                alert("Compilare i campi richiesti e inserire l'importo!");
+                return;
+            }
+
+            const checkboxesSelezionati = document.querySelectorAll('.lista-mesi-grid input[type="checkbox"]:checked');
+            
+            if (!eid && tipo === 'ENTRATA' && causale.startsWith('QUOTA MENSILE') && checkboxesSelezionati.length > 0) {
+                let mesiSelezionatiNomi = [];
+                let importoTotaleMesi = 0;
+
+                checkboxesSelezionati.forEach(chk => {
+                    let idx = chk.getAttribute('data-index');
+                    let meseSelezionatoObj = mesiSocio[idx];
+                    importoTotaleMesi += parseFloat(meseSelezionatoObj.importo);
+                    mesiSelezionatiNomi.push(meseSelezionatoObj.mese);
+                });
+
+                const recUnico = {
+                    id: Date.now(),
+                    tipo: 'ENTRATA',
+                    socioId: sid,
+                    nome: pulisciTesto(nomeF),
+                    importo: importoTotaleMesi.toFixed(2),
+                    data: dataPagamento,
+                    dataScadenza: calcolaDataScadenzaStorica(sid, dataPagamento),
+                    causale: `${causale} (${mesiSelezionatiNomi.join(', ')})`,
+                    metodo: document.getElementById('selMetodo').value,
+                    attivita: pulisciTesto(document.getElementById('inAttivita').value),
+                    numeroRicevuta: null,
+                    datiElargitore: null
+                };
+                pagamenti.push(recUnico);
+            } else {
+                let dataScadenza = null;
+                if (tipo === 'ENTRATA' && causale.startsWith('QUOTA MENSILE') && sid) {
+                    dataScadenza = calcolaDataScadenzaStorica(sid, dataPagamento);
+                }
+
+                const rec = {
+                    id: eid ? parseInt(eid) : Date.now(),
+                    tipo: tipo,
+                    socioId: (tipo === 'ENTRATA' && causale !== 'ELARGIZIONE VOLONTARIA' && sid) ? sid : null,
+                    nome: pulisciTesto(nomeF),
+                    importo: parseFloat(document.getElementById('inImporto').value).toFixed(2),
+                    data: dataPagamento,
+                    dataScadenza: dataScadenza,
+                    causale: causale,
+                    metodo: tipo === 'GIROCONTO' ? document.getElementById('selDirezioneGiro').value : document.getElementById('selMetodo').value,
+                    attivita: tipo === 'GIROCONTO' ? 'GIROCONTO' : pulisciTesto(document.getElementById('inAttivita').value),
+                    numeroRicevuta: null,
+                    datiElargitore: causale === 'ELARGIZIONE VOLONTARIA' ? currentElargitoreData : null
+                };
+
+                if(eid) {
+                    const idx = pagamenti.findIndex(x => x.id == eid);
+                    if(idx !== -1) {
+                        rec.numeroRicevuta = pagamenti[idx].numeroRicevuta;
+                        pagamenti[idx] = rec;
+                    }
+                } else {
+                    pagamenti.push(rec);
+                }
+            }
+
+            localStorage.setItem('asd_pagamenti', JSON.stringify(pagamenti));
+            rigeneraNumerazioneProgressiva();
+            popolaAttivita();
+            popolaFiltroMesi(); // Aggiorna il filtro mese per mese con i nuovi dati
+            annullaModifica();
+            render();
+            mettiFuocoPrimoCampo();
+        }
+
+        function apriModalModificaMembro() {
+            const sid = document.getElementById('selSocio').value;
+            if (!sid) {
+                alert("Seleziona prima un membro dalla lista!");
+                return;
+            }
+            const s = soci.find(x => x.id == sid);
+            if (!s) return;
+
+            document.getElementById('modMembroId').value = s.id;
+            document.getElementById('modMembroNome').value = s.nome || '';
+            document.getElementById('modMembroCognome').value = s.cognome || '';
+            document.getElementById('modMembroDisciplina').value = s.disciplina || s.attivita || '';
+            document.getElementById('modMembroQuota').value = s.quotaMensile || s.quota || '';
+            document.getElementById('modMembroStandby').checked = s.inStandby || false;
+
+            document.getElementById('modal-modifica-membro-overlay').style.display = 'flex';
+        }
+
+        function chiudiModalModificaMembro() {
+            document.getElementById('modal-modifica-membro-overlay').style.display = 'none';
+        }
+
+        function salvaModificaMembro() {
+            const sid = document.getElementById('modMembroId').value;
+            const s = soci.find(x => x.id == sid);
+            if (!s) return;
+
+            s.nome = pulisciTesto(document.getElementById('modMembroNome').value);
+            s.cognome = pulisciTesto(document.getElementById('modMembroCognome').value);
+            s.disciplina = pulisciTesto(document.getElementById('modMembroDisciplina').value);
+            s.quotaMensile = parseFloat(document.getElementById('modMembroQuota').value) || 0;
+            s.inStandby = document.getElementById('modMembroStandby').checked;
+
+            localStorage.setItem('asd_soci', JSON.stringify(soci));
+            chiudiModalModificaMembro();
+            popolaSoci();
+            document.getElementById('selSocio').value = sid;
+            gestisciCambioSocio();
+            render();
+        }
+
+        function eliminaMembroSelezionato() {
+            const sid = document.getElementById('selSocio').value;
+            if (!sid) {
+                alert("Seleziona prima un membro dalla lista!");
+                return;
+            }
+            if (confirm("Eliminare definitivamente questo membro e i relativi dati collegati?")) {
+                soci = soci.filter(x => x.id != sid);
+                localStorage.setItem('asd_soci', JSON.stringify(soci));
+                popolaSoci();
+                annullaModifica();
+                render();
+            }
+        }
+
+        function rinnova(id) {
+            const p = pagamenti.find(x => x.id == id);
+            setTipo('ENTRATA');
+            document.getElementById('editId').value = ""; 
+            document.getElementById('selCausale').value = "QUOTA MENSILE";
+            gestisciCambioCausale();
+            
+            if(p.socioId) {
+                document.getElementById('selSocio').value = p.socioId;
+                document.getElementById('boxSocio').classList.remove('hidden');
+                document.getElementById('boxNomeLibero').classList.add('hidden');
+                gestisciCambioSocio();
+            } else {
+                document.getElementById('inNomeLibero').value = p.nome;
+                document.getElementById('boxSocio').classList.add('hidden');
+                document.getElementById('boxNomeLibero').classList.remove('hidden');
+            }
+            
+            const oggi = new Date();
+            document.getElementById('inData').value = oggi.toISOString().split('T')[0];
+
+            document.getElementById('selMetodo').value = p.metodo;
+            document.getElementById('inImporto').value = p.importo;
+
+            document.getElementById('form-title').innerText = "Rinnova Quota";
+            document.getElementById('btnSalva').innerText = "CONFERMA RINNOVO";
+            document.getElementById('btnReset').classList.remove('hidden');
+            window.scrollTo({top:0, behavior:'smooth'});
+            mettiFuocoPrimoCampo();
+        }
+
+        function preparaModifica(id) {
+            const p = pagamenti.find(x => x.id == id);
+            document.getElementById('editId').value = p.id;
+            setTipo(p.tipo);
+
+            currentElargitoreData = p.datiElargitore || null;
+
+            if(p.tipo === 'GIROCONTO') {
+                document.getElementById('selDirezioneGiro').value = p.metodo;
+            } else {
+                const selCausale = document.getElementById('selCausale');
+                const esisteOpzione = Array.from(selCausale.options).some(o => o.value === p.causale);
+                
+                if (esisteOpzione) {
+                    selCausale.value = p.causale;
+                    document.getElementById('boxCausaleAltro').classList.add('hidden');
+                    document.getElementById('inCausaleAltro').value = '';
+                } else {
+                    selCausale.value = 'ALTRO';
+                    document.getElementById('boxCausaleAltro').classList.remove('hidden');
+                    const testo = p.causale.startsWith('ALTRO - ') ? p.causale.replace('ALTRO - ', '') : p.causale;
+                    document.getElementById('inCausaleAltro').value = testo;
+                }
+
+                gestisciCambioCausale();
+
+                if(p.tipo === 'ENTRATA' && p.socioId && p.causale !== 'ELARGIZIONE VOLONTARIA') { 
+                    document.getElementById('selSocio').value = p.socioId;
+                    gestisciCambioSocio();
+                } else { 
+                    document.getElementById('inNomeLibero').value = p.nome; 
+                }
+            }
+            
+            const selAttivita = document.getElementById('inAttivita');
+            const attPulita = pulisciTesto(p.attivita);
+            if (attPulita && selAttivita.tagName === 'SELECT' && !Array.from(selAttivita.options).some(o => pulisciTesto(o.value) === attPulita)) {
+                const opt = document.createElement('option');
+                opt.value = attPulita;
+                opt.text = attPulita;
+                selAttivita.add(opt);
+            }
+            selAttivita.value = attPulita;
+
+            if(p.tipo !== 'GIROCONTO') document.getElementById('selMetodo').value = p.metodo;
+            document.getElementById('inImporto').value = p.importo;
+            document.getElementById('inData').value = p.data;
+            
+            document.getElementById('form-title').innerText = "Modifica Movimento";
+            document.getElementById('btnSalva').innerText = "AGGIORNA";
+            document.getElementById('btnReset').classList.remove('hidden');
+            window.scrollTo({top:0, behavior:'smooth'});
+            mettiFuocoPrimoCampo();
+        }
+
+        function annullaModifica() {
+            document.getElementById('editId').value = "";
+            currentElargitoreData = null;
+            document.getElementById('form-title').innerText = "Registra";
+            document.getElementById('btnSalva').innerText = "Salva";
+            document.getElementById('btnReset').classList.add('hidden');
+            document.getElementById('selSocio').value = "";
+            document.getElementById('boxRiepilogoSocio').classList.add('hidden');
+            document.getElementById('inNomeLibero').value = "";
+            document.getElementById('inAttivita').value = "";
+            document.getElementById('inImporto').value = "";
+            document.getElementById('inCausaleAltro').value = "";
+            document.getElementById('boxCausaleAltro').classList.add('hidden');
+            document.getElementById('inData').valueAsDate = new Date();
+            setTipo('ENTRATA');
+            mettiFuocoPrimoCampo();
+        }
+
+        function elimina(id) { 
+            if(confirm("Eliminare definitivamente questo movimento?")) { 
+                pagamenti = pagamenti.filter(p => p.id !== id); 
+                localStorage.setItem('asd_pagamenti', JSON.stringify(pagamenti));
+                rigeneraNumerazioneProgressiva();
+                popolaFiltroMesi();
+                render();
+            }
+        }
+
+        function resetFiltri() {
+            document.getElementById('filtroNome').value = "";
+            document.getElementById('filtroStato').value = "TUTTI";
+            document.getElementById('filtroMeseAtt').value = "";
+            document.getElementById('filtroMeseAnno').value = "TUTTI_MESI";
+            render();
+        }
+
+        function calcolaMetriche(listaMovimenti = pagamenti) {
+            let contanti = 0;
+            let banca = 0;
+            let debitoCarta = 0;
+
+            listaMovimenti.forEach(p => {
+                const val = parseFloat(p.importo) || 0;
+                if(p.tipo === 'ENTRATA') {
+                    if(p.metodo === 'CONTANTI') contanti += val;
+                    else banca += val;
+                } else if(p.tipo === 'USCITA') {
+                    if(p.metodo === 'CONTANTI') {
+                        contanti -= val;
+                    } else if(p.metodo === 'CARTA_CREDITO') {
+                        debitoCarta += val;
+                    } else {
+                        banca -= val;
+                    }
+                } else if(p.tipo === 'GIROCONTO') {
+                    if(p.metodo === 'CASSA_BANCA') {
+                        contanti -= val;
+                        banca += val;
+                    } else if(p.metodo === 'BANCA_CASSA') {
+                        banca -= val;
+                        contanti += val;
+                    } else if(p.metodo === 'BANCA_CARTA') {
+                        banca -= val;
+                        debitoCarta -= val;
+                    }
+                }
+            });
+
+            return { 
+                contanti, 
+                banca, 
+                debitoCarta, 
+                liquida: contanti + banca, 
+                totale: contanti + banca - debitoCarta 
+            };
+        }
+
+        function render() {
+            try {
+                const fNome = pulisciTesto(document.getElementById('filtroNome')?.value || '');
+                const fStato = document.getElementById('filtroStato')?.value || 'TUTTI';
+                const fAtt = pulisciTesto(document.getElementById('filtroMeseAtt')?.value || '');
+                const fMeseAnno = document.getElementById('filtroMeseAnno')?.value || 'TUTTI_MESI';
+                const tbody = document.getElementById('tabella');
+                if (!tbody) return;
+
+                const oggi = new Date();
+                oggi.setHours(0,0,0,0);
+                const meseCorrente = oggi.getMonth();
+                const annoCorrente = oggi.getFullYear();
+
+                const m = calcolaMetriche();
+                const giornoCarta = config.giornoAddebitoCarta || 27;
+
+                const statsEl = document.getElementById('stats');
+                if (statsEl) {
+                    statsEl.innerHTML = `
+                        <div class="glass p-5 rounded-3xl border-b-4 border-emerald-500 flex flex-col justify-between">
+                            <div>
+                                <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Cassa Contanti 💵</p>
+                                <p class="text-3xl font-black mt-2 text-emerald-400">€ ${m.contanti.toFixed(2)}</p>
+                            </div>
+                            <p class="text-[9px] text-slate-500 font-bold mt-3 uppercase">Liquidità fisica</p>
+                        </div>
+
+                        <div class="glass p-5 rounded-3xl border-b-4 border-blue-500 flex flex-col justify-between">
+                            <div>
+                                <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Banca / POS 🏦</p>
+                                <p class="text-3xl font-black mt-2 text-blue-400">€ ${m.banca.toFixed(2)}</p>
+                            </div>
+                            <p class="text-[9px] text-slate-500 font-bold mt-3 uppercase">Conto corrente</p>
+                        </div>
+
+                        <div class="glass p-5 rounded-3xl border-b-4 border-rose-500 flex flex-col justify-between">
+                            <div>
+                                <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Carta di Credito 💳</p>
+                                <p class="text-3xl font-black mt-2 text-rose-400">- € ${m.debitoCarta.toFixed(2)}</p>
+                            </div>
+                            <div class="mt-3 pt-2 border-t border-white/10 flex items-center justify-between text-[10px] text-slate-400 font-bold">
+                                <span>Addebito il:</span>
+                                <div class="flex items-center gap-1 bg-slate-900/80 px-2 py-0.5 rounded-lg border border-slate-700">
+                                    <input type="number" min="1" max="31" value="${giornoCarta}" onchange="cambiaGiornoAddebito(this.value)" title="Giorno addebito carta" class="w-7 text-center bg-transparent text-amber-400 font-black outline-none">
+                                    <span class="text-[9px] text-slate-400">del mese</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="glass p-5 rounded-3xl border-b-4 border-amber-500 flex flex-col justify-between">
+                            <div>
+                                <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Disponibilità Liquida 💰</p>
+                                <p class="text-3xl font-black mt-2 text-amber-500">€ ${m.liquida.toFixed(2)}</p>
+                            </div>
+                            <div class="mt-3 pt-2 border-t border-white/10 flex items-center justify-between text-[10px] text-slate-400 font-bold">
+                                <span>Netto (dopo Carta):</span>
+                                <span class="text-amber-400 font-black">€ ${m.totale.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                const controllaStandBy = (s, p) => {
+                    if (s) {
+                        if (s.inStandby === true || s.standby === true || s.in_standby === true || s.isStandby === true) return true;
+                        const stSocio = String(s.stato || s.status || '').toUpperCase().replace(/[^A-Z]/g, '');
+                        if (stSocio.includes('STANDBY') || stSocio.includes('SOSPESO')) return true;
+                    }
+                    if (p) {
+                        if (p.inStandby === true || p.standby === true) return true;
+                        const stPag = String(p.stato || p.status || '').toUpperCase().replace(/[^A-Z]/g, '');
+                        if (stPag.includes('STANDBY') || stPag.includes('SOSPESO')) return true;
+                    }
+                    return false;
+                };
+
+                const trovaSocio = (p) => {
+                    if (!p) return null;
+                    if (p.socioId) {
+                        const sId = soci.find(x => x.id == p.socioId);
+                        if (sId) return sId;
+                    }
+                    if (p.nome) {
+                        const nomePulito = pulisciTesto(p.nome);
+                        return soci.find(x => {
+                            const completo1 = pulisciTesto(`${x.cognome || ''} ${x.nome || ''}`);
+                            const completo2 = pulisciTesto(`${x.nome || ''} ${x.cognome || ''}`);
+                            return completo1 === nomePulito || completo2 === nomePulito;
+                        });
+                    }
+                    return null;
+                };
+
+                const filtrati = pagamenti.filter(p => {
+                    if (!p) return false;
+                    const nomeP = pulisciTesto(p.nome || '');
+                    const attP = pulisciTesto(p.attivita || '');
+                    const causaleP = String(p.causale || '').toUpperCase();
+
+                    if (fNome && !nomeP.includes(fNome)) return false;
+                    if (fAtt && !attP.includes(fAtt)) return false;
+
+                    // Filtro Mese per Mese
+                    if (fMeseAnno && fMeseAnno !== 'TUTTI_MESI') {
+                        if (!p.data || !p.data.startsWith(fMeseAnno)) return false;
+                    }
+
+                    const s = trovaSocio(p);
+                    const eInStandBy = controllaStandBy(s, p);
+
+                    if (fStato === 'STANDBY') {
+                        if (!eInStandBy) return false;
+                    } else if (fStato === 'SCADUTE' || fStato === 'VALIDE') {
+                        if (eInStandBy) return false;
+
+                        if (p.tipo === 'ENTRATA' && causaleP.startsWith('QUOTA MENSILE') && s) {
+                            const pagSocio = pagamenti.filter(x => {
+                                if (!x || x.socioId != s.id || x.tipo !== 'ENTRATA') return false;
+                                const cUpper = (x.causale || "").toUpperCase();
+                                const eQuota = cUpper.includes("QUOTA") || cUpper.includes("MENSILE") || isQuotaMensile(x.causale);
+                                const eTesseramento = cUpper.includes("TESSER") || cUpper.includes("ISCRIZ") || cUpper.includes("ASSOCIATIV");
+                                return eQuota && !eTesseramento;
+                            });
+
+                            let dataInizioStorico = s.dataIscrizione || s.dataInizio || (pagSocio.length > 0 ? pagSocio.sort((a,b) => new Date(a.data) - new Date(b.data))[0].data : null);
+
+                            if (dataInizioStorico) {
+                                const dInizio = new Date(dataInizioStorico);
+                                const mesiDovuti = (annoCorrente - dInizio.getFullYear()) * 12 + (meseCorrente - dInizio.getMonth()) + 1;
+                                const scaduto = pagSocio.length < mesiDovuti;
+
+                                if (fStato === 'SCADUTE' && !scaduto) return false;
+                                if (fStato === 'VALIDE' && scaduto) return false;
+                            }
+                        } else {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                }).sort((a, b) => {
+                    const dataA = new Date(a.data || 0);
+                    const dataB = new Date(b.data || 0);
+                    if (dataB.getTime() !== dataA.getTime()) {
+                        return dataB - dataA;
+                    }
+                    return (b.id || 0) - (a.id || 0);
+                });
+
+                tbody.innerHTML = filtrati.map(p => {
+                    let led = "";
+                    let rigaClasse = "";
+                    const s = trovaSocio(p);
+                    const eInStandBy = controllaStandBy(s, p);
+                    const causaleUpper = String(p.causale || '').toUpperCase();
+
+                    if (p.tipo === 'ENTRATA') {
+                        rigaClasse = "border-l-4 border-emerald-500/50";
+                        if (eInStandBy) {
+                            led = `<span class="led-yellow font-black text-[9px]">🟠 STAND BY</span>`;
+                        } else if (causaleUpper.startsWith('QUOTA MENSILE') && s) {
+                            let isScaduto = true;
+                            let testoData = "Manca data iscr.";
+
+                            const pagSocio = pagamenti.filter(x => {
+                                if (!x || x.socioId != s.id || x.tipo !== 'ENTRATA') return false;
+                                const cUpper = (x.causale || "").toUpperCase();
+                                const eQuota = cUpper.includes("QUOTA") || cUpper.includes("MENSILE") || isQuotaMensile(x.causale);
+                                const eTesseramento = cUpper.includes("TESSER") || cUpper.includes("ISCRIZ") || cUpper.includes("ASSOCIATIV");
+                                return eQuota && !eTesseramento;
+                            });
+
+                            let dataInizioStorico = s.dataIscrizione || s.dataInizio || (pagSocio.length > 0 ? pagSocio.sort((a,b) => new Date(a.data) - new Date(b.data))[0].data : null);
+
+                            if (dataInizioStorico) {
+                                const dInizio = new Date(dataInizioStorico);
+                                if (!isNaN(dInizio.getTime())) {
+                                    const mesiDovuti = (annoCorrente - dInizio.getFullYear()) * 12 + (meseCorrente - dInizio.getMonth()) + 1;
+                                    const mensilitaPagate = pagSocio.length;
+                                    isScaduto = mensilitaPagate < mesiDovuti;
+
+                                    let scadMese = dInizio.getMonth() + mensilitaPagate;
+                                    let scadAnno = dInizio.getFullYear();
+                                    while (scadMese > 11) {
+                                        scadMese -= 12;
+                                        scadAnno += 1;
+                                    }
+                                    const giornoIscrizione = dInizio.getDate();
+                                    const dScadenzaReale = new Date(scadAnno, scadMese, giornoIscrizione);
+                                    testoData = dScadenzaReale.toLocaleDateString('it-IT');
+                                }
+                            }
+
+                            led = isScaduto ?
+                                `<span class="led-red font-black text-[9px]">🔴 SCOPERTO (${testoData})</span>` :
+                                `<span class="led-green font-black text-[9px]">🟢 VALIDA (${testoData})</span>`;
+                        } else {
+                            led = `<span class="text-slate-500 text-[9px]">N/D</span>`;
+                        }
+                    } else if (p.tipo === 'USCITA') {
+                        rigaClasse = "border-l-4 border-red-500/50";
+                        led = `<span class="text-slate-500 text-[9px]">N/D</span>`;
+                    } else {
+                        rigaClasse = "border-l-4 border-blue-500/50";
+                        led = `<span class="text-blue-400 font-bold text-[9px]">🔄 GIROCONTO</span>`;
+                    }
+
+                    let etichettaSoggetto = p.nome || 'N/D';
+                    if (p.datiElargitore) {
+                        if (p.datiElargitore.tipo === 'SOCIETA') {
+                            etichettaSoggetto += ` <span class="text-[9px] text-amber-400 font-bold">(DITTA/SOCIETÀ)</span>`;
+                        } else {
+                            etichettaSoggetto += ` <span class="text-[9px] text-emerald-400 font-bold">(PERS. FISICA)</span>`;
+                        }
+                    }
+
+                    const visualSoggetto = p.tipo === 'GIROCONTO' ? (p.nome || '') : `${etichettaSoggetto} <br><span class="text-[9px] text-slate-400">${p.causale || ''} - ${p.attivita || ''}</span>`;
+                    const testoNumeroRicevuta = (p.tipo === 'ENTRATA' && p.numeroRicevuta) ? ` | RICEVUTA N° ${p.numeroRicevuta}` : '';
+
+                    let etichettaMetodo = p.metodo || '';
+                    if (p.metodo === 'CARTA_CREDITO') etichettaMetodo = 'CARTA DI CREDITO 💳';
+
+                    const visualMetodo = p.tipo === 'GIROCONTO' ? `<span class="text-xs font-bold text-blue-400">${String(p.metodo || '').replace(/_/g, ' ➔ ')}</span>` : `<span class="text-xs">${etichettaMetodo}${testoNumeroRicevuta}</span>`;
+
+                    const impNum = parseFloat(p.importo) || 0;
+                    const visualImporto = p.tipo === 'ENTRATA' ? `+ € ${impNum.toFixed(2)}` : `- € ${impNum.toFixed(2)}`;
+                    const importoClasse = p.tipo === 'ENTRATA' ? "text-emerald-400 font-black text-sm" : (p.tipo === 'USCITA' ? "text-red-400 font-black text-sm" : "text-blue-400 font-black text-sm");
+
+                    const dataFormattata = p.data ? p.data.split('-').reverse().join('/') : '--/--/----';
+
+                    const btnRicevutaHtml = p.tipo === 'ENTRATA' ? `<button onclick="apriRicevuta(${p.id})" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-[9px] font-black uppercase transition">Ricevuta</button>` : '';
+                    const btnRinnovaHtml = (p.tipo === 'ENTRATA' && causaleUpper.startsWith('QUOTA MENSILE')) ? `<button onclick="rinnova(${p.id})" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-[9px] font-black uppercase transition">Rinnova</button>` : '';
+
+                    return `
+                        <tr class="hover:bg-white/[0.02] transition ${rigaClasse}">
+                            <td class="p-5 font-bold text-xs">${dataFormattata}</td>
+                            <td class="p-5">
+                                <p class="font-bold text-xs uppercase leading-tight">${visualSoggetto}</p>
+                                <p class="text-[9px] uppercase font-black text-slate-500 mt-0.5">${visualMetodo}</p>
+                            </td>
+                            <td class="p-5 text-center">${led}</td>
+                            <td class="p-5 text-right ${importoClasse}">${visualImporto}</td>
+                            <td class="p-5 text-right">
+                                <div class="flex gap-1.5 justify-end">
+                                    ${btnRinnovaHtml}
+                                    ${btnRicevutaHtml}
+                                    <button onclick="preparaModifica(${p.id})" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded-lg text-[9px] font-black uppercase transition">Modifica</button>
+                                    <button onclick="elimina(${p.id})" class="bg-red-950 hover:bg-red-900 text-red-400 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase transition">Elimina</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (err) {
+                console.error("Errore durante il rendering dei movimenti:", err);
+            }
+        }
+
+        function apriRicevuta(id) {
+            const p = pagamenti.find(x => x.id == id);
+            if(!p) return;
+            currentReceipt = p;
+
+            document.getElementById('r-asd-nome').innerText = config.nome || 'LA TUA ASSOCIAZIONE';
+            document.getElementById('r-soc-info').innerText = `C.F. ${config.cf || ''} | ${config.indirizzo || ''}`;
+            
+            document.getElementById('r-numero').innerText = p.numeroRicevuta || "---";
+            document.getElementById('r-data').innerText = p.data.split('-').reverse().join('/');
+            document.getElementById('r-socio').innerText = p.nome;
+            
+            const boxIndirizzo = document.getElementById('r-box-indirizzo');
+            const elIndirizzo = document.getElementById('r-indirizzo');
+
+            if (p.datiElargitore) {
+                if (p.datiElargitore.tipo === 'SOCIETA') {
+                    document.getElementById('r-cf-label').innerText = 'P. IVA / C.F.';
+                    document.getElementById('r-cf').innerText = p.datiElargitore.piva || 'N/D';
+                } else {
+                    document.getElementById('r-cf-label').innerText = 'Cod. Fiscale';
+                    document.getElementById('r-cf').innerText = p.datiElargitore.cf || 'N/D';
+                }
+
+                if (p.datiElargitore.indirizzoCompleto) {
+                    boxIndirizzo.classList.remove('hidden');
+                    elIndirizzo.innerText = p.datiElargitore.indirizzoCompleto;
+                } else {
+                    boxIndirizzo.classList.add('hidden');
+                }
+            } else {
+                document.getElementById('r-cf-label').innerText = 'Cod. Fiscale';
+                const s = soci.find(x => x.id == p.socioId);
+                document.getElementById('r-cf').innerText = s && s.cf ? pulisciTesto(s.cf) : 'N/D';
+                boxIndirizzo.classList.add('hidden');
+            }
+
+            const disciplinaText = p.attivita ? ` - ${p.attivita}` : '';
+            document.getElementById('r-causale').innerText = `${p.causale}${disciplinaText}`;
+            document.getElementById('r-metodo').innerText = p.metodo;
+            document.getElementById('r-importo').innerText = `€ ${parseFloat(p.importo).toFixed(2)}`;
+
+            document.getElementById('modal-overlay').style.display = 'flex';
+        }
+
+        function chiudiRicevuta() {
+            document.getElementById('modal-overlay').style.display = 'none';
+        }
+
+        function avviaStampaRicevuta() {
+            document.body.classList.add('print-receipt');
+            window.print();
+            setTimeout(() => {
+                document.body.classList.remove('print-receipt');
+            }, 500);
+        }
+
+        function inviaViaEmail() {
+            if (!currentReceipt) {
+                alert("Nessuna ricevuta selezionata.");
+                return;
+            }
+            
+            const tesserati = JSON.parse(localStorage.getItem('asd_soci')) || [];
+            const nomeSoggetto = currentReceipt.soggetto || currentReceipt.socio || document.querySelector('.modal-content, [id*="ricevuta"], .bg-white')?.innerText.match(/Soggetto[:\s]+([A-Z\s]+)/i)?.[1]?.trim() || "Socio";
+
+            const socioTrovato = tesserati.find(s => 
+                String(s.id) === String(currentReceipt.socioId) || 
+                `${s.cognome} ${s.nome}`.trim().toUpperCase() === String(nomeSoggetto).trim().toUpperCase()
+            );
+
+            let emailDestinatario = socioTrovato ? socioTrovato.email : '';
+
+            if (!emailDestinatario) {
+                emailDestinatario = prompt("Indirizzo email non trovato in Anagrafica Tesserati. Inseriscilo manualmente:");
+                if (!emailDestinatario) return;
+            }
+
+            const soggettoEmail = encodeURIComponent(`Ricevuta N° ${currentReceipt.numeroRicevuta} - ${config.nome}`);
+            const corpoEmail = encodeURIComponent(
+                `Gentile ${nomeSoggetto},\n\n` +
+                `In allegato/trasmissione i dettagli della ricevuta n° ${currentReceipt.numeroRicevuta} del ${currentReceipt.data}.\n` +
+                `Causale: ${currentReceipt.causale}\n` +
+                `Importo Totale: € ${parseFloat(currentReceipt.importo).toFixed(2)}\n\n` +
+                `Cordiali saluti,\n${config.nome}`
+            );
+
+            const allCards = Array.from(document.querySelectorAll('.glass, div'));
+            const ricevutaElement = allCards.find(el => el.innerText && el.innerText.includes("RICEVUTA N°") && !el.innerText.includes("CASSA CONTANTI"));
+
+            const targetToCapture = ricevutaElement || document.querySelector('.bg-white') || document.body;
+
+            html2canvas(targetToCapture, { scale: 2, backgroundColor: '#ffffff', useCORS: true }).then(canvas => {
+                canvas.toBlob(blob => {
+                    try {
+                        const item = new ClipboardItem({ "image/png": blob });
+                        navigator.clipboard.write([item]).then(() => {
+                            alert(`📸 Foto della ricevuta di ${nomeSoggetto} pronta!\n\nSi aprirà la mail: clicca nel testo e premi CTRL+V per incollare l'immagine corretta.`);
+                            window.location.href = `mailto:${emailDestinatario}?subject=${soggettoEmail}&body=${corpoEmail}`;
+                        });
+                    } catch (err) {
+                        window.location.href = `mailto:${emailDestinatario}?subject=${soggettoEmail}&body=${corpoEmail}`;
+                    }
+                });
+            }).catch(err => {
+                window.location.href = `mailto:${emailDestinatario}?subject=${soggettoEmail}&body=${corpoEmail}`;
+            });
+        }
+
+        function apriBilancio() {
+            document.getElementById('b-asd-nome').innerText = config.nome || 'ASD';
+            document.getElementById('b-asd-info').innerText = `C.F. ${config.cf || ''} | ${config.indirizzo || ''}`;
+            document.getElementById('b-data-generazione').innerText = new Date().toLocaleDateString('it-IT');
+
+            const anniSet = new Set();
+            anniSet.add(new Date().getFullYear());
+            pagamenti.forEach(p => {
+                if (p.data) {
+                    const anno = new Date(p.data).getFullYear();
+                    if (!isNaN(anno)) anniSet.add(anno);
+                }
+            });
+            const anniOrdinati = Array.from(anniSet).sort((a, b) => b - a);
+            const selectAnno = document.getElementById('b-seleziona-anno');
+            selectAnno.innerHTML = anniOrdinati.map(a => `<option value="${a}">${a} (01/01 - 31/12)</option>`).join('');
+
+            aggiornaBilancioAnno();
+            document.getElementById('modal-bilancio-overlay').style.display = 'block';
+        }
+
+        function aggiornaBilancioAnno() {
+            const annoSelezionato = parseInt(document.getElementById('b-seleziona-anno').value, 10);
+            const dataInizio = `${annoSelezionato}-01-01`;
+            const dataFine = `${annoSelezionato}-12-31`;
+
+            const movimentiAnno = pagamenti.filter(p => {
+                if (!p || !p.data) return false;
+                return p.data >= dataInizio && p.data <= dataFine;
+            });
+
+            const m = calcolaMetriche(movimentiAnno);
+            document.getElementById('b-saldo-cassa').innerText = `€ ${m.contanti.toFixed(2)}`;
+            document.getElementById('b-saldo-banca').innerText = `€ ${m.banca.toFixed(2)}`;
+            document.getElementById('b-saldo-carta').innerText = `- € ${m.debitoCarta.toFixed(2)}`;
+            document.getElementById('b-saldo-totale').innerText = `€ ${m.totale.toFixed(2)}`;
+
+            let entratePerCausale = {};
+            let uscitePerCausale = {};
+
+            movimentiAnno.forEach(p => {
+                const imp = parseFloat(p.importo) || 0;
+                if (p.tipo === 'ENTRATA') {
+                    let causaleBase = p.causale ? p.causale.split('(')[0].trim() : 'ALTRO';
+                    entratePerCausale[causaleBase] = (entratePerCausale[causaleBase] || 0) + imp;
+                } else if (p.tipo === 'USCITA') {
+                    let causaleBase = p.causale ? p.causale.split('(')[0].trim() : 'ALTRO';
+                    uscitePerCausale[causaleBase] = (uscitePerCausale[causaleBase] || 0) + imp;
+                }
+            });
+
+            const listaEntrateEl = document.getElementById('b-lista-entrate');
+            const listaUsciteEl = document.getElementById('b-lista-uscite');
+
+            let htmlEntrate = '';
+            for (let [causale, totale] of Object.entries(entratePerCausale)) {
+                htmlEntrate += `<div class="flex justify-between border-b border-slate-100 pb-1 font-bold"><span>${causale}</span><span class="text-emerald-600">+ € ${totale.toFixed(2)}</span></div>`;
+            }
+            listaEntrateEl.innerHTML = htmlEntrate || '<span class="text-slate-400 italic">Nessuna entrata</span>';
+
+            let htmlUscite = '';
+            for (let [causale, totale] of Object.entries(uscitePerCausale)) {
+                htmlUscite += `<div class="flex justify-between border-b border-slate-100 pb-1 font-bold"><span>${causale}</span><span class="text-red-600">- € ${totale.toFixed(2)}</span></div>`;
+            }
+            listaUsciteEl.innerHTML = htmlUscite || '<span class="text-slate-400 italic">Nessuna uscita</span>';
+
+            const tabellaMovimentiEl = document.getElementById('b-tabella-movimenti');
+            tabellaMovimentiEl.innerHTML = movimentiAnno.sort((a,b) => new Date(a.data) - new Date(b.data)).map(p => {
+                const dataF = p.data ? p.data.split('-').reverse().join('/') : '--/--/----';
+                const imp = parseFloat(p.importo) || 0;
+                let cassaVal = '-';
+                let bancaVal = '-';
+
+                if (p.tipo === 'ENTRATA') {
+                    if (p.metodo === 'CONTANTI') cassaVal = `+ € ${imp.toFixed(2)}`;
+                    else bancaVal = `+ € ${imp.toFixed(2)}`;
+                } else if (p.tipo === 'USCITA') {
+                    if (p.metodo === 'CONTANTI') cassaVal = `- € ${imp.toFixed(2)}`;
+                    else bancaVal = `- € ${imp.toFixed(2)}`;
+                } else if (p.tipo === 'GIROCONTO') {
+                    if (p.metodo === 'CASSA_BANCA') {
+                        cassaVal = `- € ${imp.toFixed(2)}`;
+                        bancaVal = `+ € ${imp.toFixed(2)}`;
+                    } else if (p.metodo === 'BANCA_CASSA') {
+                        bancaVal = `- € ${imp.toFixed(2)}`;
+                        cassaVal = `+ € ${imp.toFixed(2)}`;
+                    } else if (p.metodo === 'BANCA_CARTA') {
+                        bancaVal = `- € ${imp.toFixed(2)}`;
+                    }
+                }
+
+                return `
+                    <tr class="border-b border-slate-100">
+                        <td class="p-3 font-bold">${dataF}</td>
+                        <td class="p-3 uppercase font-bold text-[10px] text-slate-600">${p.tipo}</td>
+                        <td class="p-3 uppercase font-bold">${p.nome} - <span class="text-slate-500">${p.causale}</span></td>
+                        <td class="p-3 text-right font-bold">${cassaVal}</td>
+                        <td class="p-3 text-right font-bold">${bancaVal}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function chiudiBilancio() {
+            document.getElementById('modal-bilancio-overlay').style.display = 'none';
+        }
+
+        function avviaStampaBilancio() {
+            document.body.classList.add('print-report');
+            window.print();
+            setTimeout(() => {
+                document.body.classList.remove('print-report');
+            }, 500);
+        }
+
+        function apriReportSocioModal() {
+            document.getElementById('rs-data-generazione').innerText = new Date().toLocaleDateString('it-IT');
+            popolaSoci();
+            document.getElementById('modal-report-socio-overlay').style.display = 'block';
+            generaDatiReportSocio();
+        }
+
+        function chiudiReportSocioModal() {
+            document.getElementById('modal-report-socio-overlay').style.display = 'none';
+        }
+
+        function generaDatiReportSocio() {
+            const sid = document.getElementById('selectReportSocioId').value;
+            const boxPartiteAperte = document.getElementById('rs-box-partite-aperte');
+            const listaPartiteAperte = document.getElementById('rs-lista-partite-aperte');
+            const tabellaMovimenti = document.getElementById('rs-tabella-movimenti');
+
+            if (!sid) {
+                document.getElementById('rs-socio-nome').innerText = "SELEZIONA UN SOCIO";
+                document.getElementById('rs-socio-info').innerText = "Disciplina: -- | Quota: € 0.00";
+                document.getElementById('rs-totale-versato').innerText = "€ 0.00";
+                document.getElementById('rs-totale-movimenti').innerText = "0";
+                document.getElementById('rs-stato-posizione').innerText = "--";
+                boxPartiteAperte.classList.add('hidden');
+                tabellaMovimenti.innerHTML = '';
+                return;
+            }
+
+            const s = soci.find(x => x.id == sid);
+            if (!s) return;
+
+            document.getElementById('rs-socio-nome').innerText = `${s.cognome} ${s.nome}`;
+            const disc = s.disciplina || s.attivita || 'NON SPECIFICATA';
+            const quota = parseFloat(s.quotaMensile || s.quota || 0);
+            document.getElementById('rs-socio-info').innerText = `Disciplina: ${disc} | Quota Standard: € ${quota.toFixed(2)}`;
+
+            const pagSocio = pagamenti.filter(x => x && (x.socioId == s.id || (x.nome && pulisciTesto(x.nome) === pulisciTesto(`${s.cognome} ${s.nome}`))));
+            pagSocio.sort((a,b) => new Date(b.data) - new Date(a.data));
+
+            let totaleVersato = 0;
+            pagSocio.forEach(p => {
+                if(p.tipo === 'ENTRATA') totaleVersato += parseFloat(p.importo) || 0;
+            });
+
+            document.getElementById('rs-totale-versato').innerText = `€ ${totaleVersato.toFixed(2)}`;
+            document.getElementById('rs-totale-movimenti').innerText = pagSocio.length;
+
+            const inStandBy = s.inStandby === true || s.standby === true;
+            const oggi = new Date();
+            oggi.setHours(0,0,0,0);
+            const meseCorrente = oggi.getMonth();
+            const annoCorrente = oggi.getFullYear();
+
+            const pagSocioQuote = pagSocio.filter(x => {
+                const cUpper = (x.causale || "").toUpperCase();
+                return (cUpper.includes("QUOTA") || cUpper.includes("MENSILE") || isQuotaMensile(x.causale)) && !cUpper.includes("TESSER") && !cUpper.includes("ISCRIZ");
+            });
+
+            let dataInizioStorico = s.dataIscrizione || s.dataInizio || (pagSocioQuote.length > 0 ? pagSocioQuote.sort((a,b) => new Date(a.data) - new Date(b.data))[0].data : null);
+
+            let mesiGiaPagatiSet = new Set();
+            pagSocioQuote.forEach(p => {
+                let cUp = (p.causale || "").toUpperCase();
+                if (cUp.includes("(")) {
+                    let matchMesi = cUp.substring(cUp.indexOf('(') + 1, cUp.indexOf(')'));
+                    matchMesi.split(',').forEach(mStr => {
+                        mesiGiaPagatiSet.add(mStr.trim());
+                    });
+                }
+            });
+
+            let mesiScopertiReport = [];
+            if (dataInizioStorico && !inStandBy) {
+                let dInizio = new Date(dataInizioStorico);
+                if (!isNaN(dInizio.getTime())) {
+                    let currentIterDate = new Date(dInizio.getFullYear(), dInizio.getMonth(), 1);
+                    let limiteIterDate = new Date(annoCorrente, meseCorrente, 1);
+
+                    let countPagatiMatch = 0;
+                    while (currentIterDate <= limiteIterDate) {
+                        let nomeMeseAnno = currentIterDate.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
+                        nomeMeseAnno = nomeMeseAnno.charAt(0).toUpperCase() + nomeMeseAnno.slice(1);
+
+                        let giaPagato = mesiGiaPagatiSet.has(nomeMeseAnno.toUpperCase()) || 
+                                       Array.from(mesiGiaPagatiSet).some(m => nomeMeseAnno.toUpperCase().includes(m)) ||
+                                       (countPagatiMatch < pagSocioQuote.length && mesiGiaPagatiSet.size === 0);
+
+                        if (giaPagato) {
+                            countPagatiMatch++;
+                        } else {
+                            mesiScopertiReport.push(nomeMeseAnno);
+                        }
+
+                        currentIterDate.setMonth(currentIterDate.getMonth() + 1);
+                    }
+                }
+            }
+
+            const statoPosizioneEl = document.getElementById('rs-stato-posizione');
+            if (inStandBy) {
+                statoPosizioneEl.innerText = "🟠 IN STAND BY";
+                statoPosizioneEl.className = "text-lg font-black text-amber-500";
+                boxPartiteAperte.classList.add('hidden');
+            } else if (mesiScopertiReport.length > 0) {
+                statoPosizioneEl.innerText = `🔴 SCOPERTO (${mesiScopertiReport.length} mesi)`;
+                statoPosizioneEl.className = "text-lg font-black text-rose-600";
+                boxPartiteAperte.classList.remove('hidden');
+                listaPartiteAperte.innerHTML = mesiScopertiReport.map(m => `<div class="bg-white p-2 rounded border border-rose-200 font-bold text-rose-700">⚠️ ${m}</div>`).join('');
+            } else {
+                statoPosizioneEl.innerText = "🟢 IN REGOLA";
+                statoPosizioneEl.className = "text-lg font-black text-emerald-600";
+                boxPartiteAperte.classList.add('hidden');
+            }
+
+            tabellaMovimenti.innerHTML = pagSocio.map(p => {
+                const dataF = p.data ? p.data.split('-').reverse().join('/') : '--/--/----';
+                const imp = parseFloat(p.importo) || 0;
+                return `
+                    <tr class="border-b border-slate-100">
+                        <td class="p-3 font-bold">${dataF}</td>
+                        <td class="p-3 uppercase font-bold">${p.causale} <span class="text-slate-400 font-normal">- ${p.attivita || ''}</span></td>
+                        <td class="p-3 uppercase text-xs">${p.metodo}</td>
+                        <td class="p-3 text-right font-black text-emerald-600">+ € ${imp.toFixed(2)}</td>
+                    </tr>
+                `;
+            }).join('') || `<tr><td colspan="4" class="p-4 text-center text-slate-400 italic">Nessun movimento registrato per questo socio.</td></tr>`;
+        }
+
+        function avviaStampaReportSocio() {
+            document.body.classList.add('print-report-socio');
+            window.print();
+            setTimeout(() => {
+                document.body.classList.remove('print-report-socio');
+            }, 500);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Anagrafica Tesserati & Modulistica</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        .glass { background: rgba(255,255,255,0.05); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.1); }
+        body { background: #0f172a; color: white; min-height: 100vh; font-family: sans-serif; }
+        .input-asd { width: 100%; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 8px; outline: none; color: white; text-transform: uppercase; font-size: 13px; }
+        .input-asd:focus { border-color: #a855f7; }
+        .label-asd { font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 4px; display: block; }
+        @media print { .no-print { display: none !important; } }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-7xl mx-auto no-print">
+        <header class="mb-8 flex justify-between items-center border-b border-white/10 pb-4">
+            <div class="flex items-center gap-4">
+                <div id="asdLogoBadge" class="w-12 h-12 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl flex items-center justify-center font-black italic text-white text-xl shadow-xl border border-white/20 overflow-hidden">ASD</div>
+                <div>
+                    <h1 class="text-3xl font-black text-purple-400 uppercase italic">👥 Gestione Tesserati</h1>
+                    <p id="headerAsdName" class="text-slate-400 text-xs font-bold uppercase tracking-widest">Caricamento ASD...</p>
+                </div>
+            </div>
+            <div class="flex gap-4">
+                <a href="stampa_tesserati.html" target="_blank" class="bg-emerald-600 px-6 py-2 rounded-xl font-bold uppercase text-[10px] hover:bg-emerald-500 transition">Stampa Report</a>
+                <a href="index.html" class="bg-slate-700 px-6 py-2 rounded-xl font-bold uppercase text-[10px] hover:bg-slate-600 transition">Torna alla Home</a>
+                <a href="partite.html" class="bg-red-600/20 text-red-400 border border-red-500/30 px-6 py-2 rounded-xl font-bold uppercase text-[10px] hover:bg-red-600/40 transition">Gestione Partite Aperte</a>
+            </div>
+        </header>
+
+        <div id="birthdayAlert" class="hidden mb-8 p-4 bg-gradient-to-r from-pink-500/20 to-purple-500/20 border border-pink-500/50 rounded-3xl flex items-center gap-4">
+            <div class="text-3xl">🎂</div>
+            <div>
+                <h3 class="text-pink-400 font-black uppercase italic text-sm">Compleanni di Oggi!</h3>
+                <p id="birthdayNames" class="text-white font-bold text-lg uppercase"></p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-8">
+            <div class="glass p-6 rounded-3xl border-l-4 border-emerald-500 text-center">
+                <h3 class="text-[10px] font-bold text-slate-400 uppercase">Tesserati Attivi</h3>
+                <p id="totalActive" class="text-3xl font-black text-emerald-400">0</p>
+            </div>
+            <div class="glass p-6 rounded-3xl border-l-4 border-amber-500 text-center">
+                <h3 class="text-[10px] font-bold text-slate-400 uppercase">Tesserati in Stand-by</h3>
+                <p id="totalStandby" class="text-3xl font-black text-amber-500">0</p>
+            </div>
+        </div>
+
+        <div id="statsDiscipline" class="flex flex-wrap gap-3 mb-8"></div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div class="lg:col-span-4">
+                <div class="glass p-6 rounded-3xl sticky top-8 border-t-2 border-purple-500">
+                    <h2 id="formTitle" class="text-lg font-black mb-6 text-purple-400 uppercase italic">➕ Nuovo Tesserato</h2>
+                    <input type="hidden" id="tesseratoId" value="">
+                    <div class="space-y-4">
+                        <div class="p-3 bg-purple-500/10 rounded-xl space-y-3">
+                            <div>
+                                <label class="label-asd text-purple-300 font-black">Ruolo Tesserato</label>
+                                <select id="tesRuolo" class="input-asd bg-slate-900" onchange="gestisciVisibilitaQuote()">
+                                    <option value="ATLETA_AGONISTA">ATLETA AGONISTA</option>
+                                    <option value="ATLETA_NON_AGONISTA">ATLETA NON AGONISTA</option>
+                                    <option value="TECNICO">TECNICO</option>
+                                    <option value="SOCIO_ORDINARIO">SOCIO ORDINARIO</option>
+                                    <option value="VOLONTARIO">VOLONTARIO</option>
+                                    <option value="ALTRO">ALTRO (SPECIFICARE)</option>
+                                </select>
+                            </div>
+                            <div id="sezioneAltroRuolo" class="hidden">
+                                <label class="label-asd text-purple-300">Specifica Altro Ruolo</label>
+                                <input id="tesAltroRuolo" class="input-asd bg-slate-900" placeholder="ES. DIRIGENTE" oninput="gestisciVisibilitaQuote()">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div><label class="label-asd">Cognome</label><input id="tesCognome" class="input-asd"></div>
+                            <div><label class="label-asd">Nome</label><input id="tesNome" class="input-asd"></div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div><label class="label-asd">Data Nascita</label><input id="tesDataNascita" type="date" min="1900-01-01" max="2099-12-31" class="input-asd" onchange="checkMinorenne()"></div>
+                            <div><label class="label-asd">Luogo Nascita</label><input id="tesLuogoNascita" class="input-asd"></div>
+                        </div>
+                        <div id="sezioneTutore" class="hidden p-4 bg-red-500/10 border border-red-500/30 rounded-2xl space-y-3">
+                            <h3 class="text-[10px] font-black text-red-400 uppercase italic">Dati Genitore / Tutore (Minorenne)</h3>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div><label class="label-asd text-red-300/50">Cognome Tutore</label><input id="tutoreCognome" class="input-asd border-red-500/20"></div>
+                                <div><label class="label-asd text-red-300/50">Nome Tutore</label><input id="tutoreNome" class="input-asd border-red-500/20"></div>
+                            </div>
+                            <div><label class="label-asd text-red-300/50">C.F. Tutore</label><input id="tutoreCF" class="input-asd border-red-500/20" maxlength="16"></div>
+                        </div>
+                        <div><label class="label-asd">Codice Fiscale Tesserato</label><input id="tesCF" class="input-asd" maxlength="16"></div>
+                        <div><label class="label-asd">Indirizzo Residenza</label><input id="tesIndirizzo" class="input-asd"></div>
+                        <div class="grid grid-cols-4 gap-2">
+                            <div><label class="label-asd">Civico</label><input id="tesCivico" class="input-asd"></div>
+                            <div><label class="label-asd">CAP</label><input id="tesCap" class="input-asd"></div>
+                            <div><label class="label-asd">Comune</label><input id="tesComune" class="input-asd"></div>
+                            <div><label class="label-asd">Prov.</label><input id="tesProvincia" class="input-asd" maxlength="2"></div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div><label class="label-asd">Cellulare</label><input id="tesCell" class="input-asd" style="text-transform:none"></div>
+                            <div><label class="label-asd">Email</label><input id="tesEmail" type="email" class="input-asd" style="text-transform:none"></div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3 p-3 bg-purple-500/10 rounded-xl">
+                            <div><label class="label-asd">Disciplina</label><select id="tesCorso" class="input-asd bg-slate-900"></select></div>
+                            <div><label class="label-asd text-red-400 italic">Scadenza Med.</label><input id="tesMedica" type="date" min="1900-01-01" max="2099-12-31" class="input-asd bg-slate-900"></div>
+                        </div>
+                        
+                        <div id="bloccoQuote" class="space-y-3">
+                            <div class="p-3 bg-purple-500/10 rounded-xl">
+                                <label class="label-asd">Quota Mensile (€)</label>
+                                <input id="tesQuota" type="number" step="0.01" class="input-asd bg-slate-900" placeholder="0.00">
+                            </div>
+                            <div class="p-3 bg-emerald-500/10 rounded-xl">
+                                <label class="label-asd text-emerald-400">Quota Tesseramento (€)</label>
+                                <input id="tesQuotaTess" type="number" step="0.01" class="input-asd bg-slate-900" placeholder="0.00">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="label-asd font-bold text-blue-400">Data Iscrizione</label>
+                            <input id="tesDataIscrizione" type="date" min="1900-01-01" max="2099-12-31" class="input-asd border-blue-500/30 bg-slate-900">
+                        </div>
+                        <button id="btnSalva" onclick="salvaTesserato()" class="w-full bg-purple-600 py-4 rounded-2xl font-black uppercase text-white hover:bg-purple-500 shadow-xl transition-all">Salva Tesserato</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-8">
+                <div class="flex flex-col md:flex-row gap-4 mb-6">
+                    <input type="text" id="searchTesserato" onkeyup="renderTesserati()" placeholder="🔍 Cerca tesserato..." class="flex-1 bg-white/5 border border-white/10 p-4 rounded-2xl outline-none uppercase focus:border-purple-500">
+                    <select id="filterDisciplina" onchange="renderTesserati()" class="bg-slate-800 border border-white/10 p-4 rounded-2xl outline-none uppercase text-xs font-bold text-purple-300"></select>
+                    <select id="filterStato" onchange="renderTesserati()" class="bg-slate-800 border border-white/10 p-4 rounded-2xl outline-none uppercase text-xs font-bold text-amber-300">
+                        <option value="TUTTI">TUTTI GLI STATI</option>
+                        <option value="STANDBY">👤 IN STAND-BY</option>
+                        <option value="REGOLARE">🟢 IN REGOLA</option>
+                        <option value="SCADENZA">🟡 IN SCADENZA</option>
+                        <option value="SCADUTO">🔴 SCADUTI</option>
+                    </select>
+                </div>
+                <div id="listaTesserati" class="grid grid-cols-1 gap-4"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALE ANTEPRIMA / GESTIONE MODULO PDF -->
+    <div id="modalModulisticaPDF" class="hidden fixed inset-0 z-[99999] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-slate-900 border border-white/10 p-6 md:p-8 rounded-3xl w-full max-w-4xl shadow-2xl my-8 flex flex-col max-h-[90vh]">
+            <div class="flex justify-between items-center pb-4 border-b border-white/10 mb-4">
+                <h2 class="text-white font-black text-xl uppercase italic">📄 Modulo Iscrizione e Tesseramento</h2>
+                <button onclick="chiudiModalModulistica()" class="text-slate-400 hover:text-white font-bold text-xl px-3 py-1 bg-white/5 rounded-xl">✕</button>
+            </div>
+            
+            <div id="contenitoreAnteprimaPDF" class="bg-white text-slate-900 p-6 rounded-2xl overflow-y-auto flex-1 mb-6 shadow-inner">
+                <!-- Qui verrà iniettato l'HTML del modulo -->
+            </div>
+
+            <div class="flex flex-wrap gap-3 justify-end pt-2 border-t border-white/10">
+                <button onclick="copiaTestoModuloDaModal()" class="bg-purple-600 hover:bg-purple-500 text-white px-5 py-3 rounded-xl font-black uppercase text-xs transition flex items-center gap-2 shadow-lg">
+                    📋 Copia Testo Modulo
+                </button>
+                <button onclick="inviaMailModuloDaModal()" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-3 rounded-xl font-black uppercase text-xs transition flex items-center gap-2 shadow-lg">
+                    ✉️ Invia con Mail
+                </button>
+                <button onclick="scaricaPDFDaModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-3 rounded-xl font-black uppercase text-xs transition flex items-center gap-2 shadow-lg">
+                    📥 Scarica / Stampa PDF
+                </button>
+                <button onclick="chiudiModalModulistica()" class="bg-slate-700 hover:bg-slate-600 text-white px-5 py-3 rounded-xl font-black uppercase text-xs transition">
+                    Chiudi
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalMensilita" class="hidden fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md flex items-center justify-center p-4"></div>
+
+    <script>
+        let tesserati = JSON.parse(localStorage.getItem('asd_soci')) || [];
+        let idSocioCorrenteModulistica = null;
+
+        window.onload = () => {
+            applicaNomeAsdHader();
+            popolaFiltri();
+            document.getElementById('tesDataIscrizione').valueAsDate = new Date();
+            renderTesserati();
+            checkCompleanni();
+            setupNavigazioneInvio();
+            gestisciVisibilitaQuote();
+        };
+
+        function applicaNomeAsdHader() {
+            const config = JSON.parse(localStorage.getItem('asd_config')) || JSON.parse(localStorage.getItem('config_asd')) || {};
+            const nomeAsd = config.nome || 'CONFIGURA ASD IN HOME';
+            
+            document.getElementById('headerAsdName').innerText = `${nomeAsd} - Anagrafica 2026`;
+
+            const badge = document.getElementById('asdLogoBadge');
+            if (config.logo) {
+                badge.innerHTML = `<img src="${config.logo}" class="w-full h-full object-cover">`;
+            } else if (config.logoCustom) {
+                badge.innerHTML = `<img src="${config.logoCustom}" class="w-full h-full object-cover">`;
+            } else if (config.nome) {
+                const pulito = config.nome.replace(/asd/gi, '').trim();
+                const lettere = pulito.substring(0, 2).toUpperCase();
+                badge.innerText = lettere || 'ASD';
+            } else {
+                badge.innerText = 'ASD';
+            }
+        }
+
+        function isAtletaRuolo(ruolo, altroRuolo) {
+            const r = (ruolo || '').toUpperCase();
+            const a = (altroRuolo || '').toUpperCase();
+            
+            if (r === 'TECNICO' || r === 'VOLONTARIO' || r === 'SOCIO_ORDINARIO') return false;
+            if (r.includes('ATLETA')) return true;
+            if (r === 'ALTRO') {
+                return a.includes('ATLETA');
+            }
+            return r.includes('ATLETA');
+        }
+
+        function gestisciVisibilitaQuote() {
+            const ruolo = document.getElementById('tesRuolo').value;
+            const altroRuoloSpec = document.getElementById('tesAltroRuolo').value;
+            const bloccoQuote = document.getElementById('bloccoQuote');
+            const sezioneAltro = document.getElementById('sezioneAltroRuolo');
+
+            if (ruolo === 'ALTRO') {
+                sezioneAltro.classList.remove('hidden');
+            } else {
+                sezioneAltro.classList.add('hidden');
+                document.getElementById('tesAltroRuolo').value = '';
+            }
+
+            if (!isAtletaRuolo(ruolo, altroRuoloSpec)) {
+                bloccoQuote.classList.add('hidden');
+                document.getElementById('tesQuota').value = '';
+                document.getElementById('tesQuotaTess').value = '';
+            } else {
+                bloccoQuote.classList.remove('hidden');
+            }
+        }
+
+        function setupNavigazioneInvio() {
+            const formContainer = document.getElementById('formTitle').parentElement;
+            
+            formContainer.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === 'Escape') {
+                    if (e.target.id === 'btnSalva') return;
+                    e.preventDefault();
+
+                    const inputIds = [
+                        'tesRuolo', 'tesAltroRuolo', 'tesCognome', 'tesNome', 'tesDataNascita', 'tesLuogoNascita'
+                    ];
+
+                    const sezioneTutore = document.getElementById('sezioneTutore');
+                    if (!sezioneTutore.classList.contains('hidden')) {
+                        inputIds.push('tutoreCognome', 'tutoreNome', 'tutoreCF');
+                    }
+
+                    inputIds.push(
+                        'tesCF', 'tesIndirizzo', 'tesCivico', 'tesCap', 'tesComune', 
+                        'tesProvincia', 'tesCell', 'tesEmail', 'tesCorso', 'tesMedica', 
+                        'tesQuota', 'tesQuotaTess', 'tesDataIscrizione'
+                    );
+
+                    const currentIndex = inputIds.indexOf(e.target.id);
+
+                    if (e.key === 'Enter') {
+                        if (currentIndex > -1 && currentIndex < inputIds.length - 1) {
+                            const nextInput = document.getElementById(inputIds[currentIndex + 1]);
+                            if (nextInput) nextInput.focus();
+                        } else if (currentIndex === inputIds.length - 1) {
+                            salvaTesserato();
+                        }
+                    }
+
+                    if (e.key === 'Escape') {
+                        if (currentIndex > 0) {
+                            const prevInput = document.getElementById(inputIds[currentIndex - 1]);
+                            if (prevInput) prevInput.focus();
+                        }
+                    }
+                }
+            });
+        }
+
+        function popolaFiltri() {
+            const config = JSON.parse(localStorage.getItem('asd_config')) || JSON.parse(localStorage.getItem('config_asd')) || {};
+            const selForm = document.getElementById('tesCorso');
+            const selFiltro = document.getElementById('filterDisciplina');
+            
+            let lista = config.discipline ? config.discipline.split(',').map(d => d.trim()).filter(d => d !== "") : ['Karate', 'Ginnastica', 'Difesa Personale'];
+
+            const opzioni = lista.map(c => `<option value="${c}">${c}</option>`).join('');
+            
+            selForm.innerHTML = '<option value="">-- SELEZIONA --</option>' + opzioni;
+            selFiltro.innerHTML = `<option value="">TUTTE LE DISCIPLINE</option>${opzioni}`;
+        }
+
+        function calcolaEta(dataNascita) {
+            if(!dataNascita) return 0;
+            const oggi = new Date();
+            const nascita = new Date(dataNascita);
+            let eta = oggi.getFullYear() - nascita.getFullYear();
+            const m = oggi.getMonth() - nascita.getMonth();
+            if (m < 0 || (m === 0 && oggi.getDate() < nascita.getDate())) { eta--; }
+            return eta;
+        }
+
+        function checkMinorenne() {
+            const dataNascita = document.getElementById('tesDataNascita').value;
+            const eta = calcolaEta(dataNascita);
+            const sezione = document.getElementById('sezioneTutore');
+            if(dataNascita && eta < 18) { sezione.classList.remove('hidden'); } 
+            else { sezione.classList.add('hidden'); }
+        }
+
+        function salvaTesserato() {
+    const id = document.getElementById('tesseratoId').value;
+    const ruoloSelezionato = document.getElementById('tesRuolo').value;
+    const altroRuoloSpec = document.getElementById('tesAltroRuolo').value.toUpperCase();
+    
+    const tesseratiEsistenti = JSON.parse(localStorage.getItem('asd_soci')) || [];
+    const prossimoId = id ? parseInt(id) : (tesseratiEsistenti.length > 0 ? Math.max(...tesseratiEsistenti.map(x => Number(x.id) || 0)) + 1 : 1);
+
+    const t = {
+        id: prossimoId,
+        ruolo: ruoloSelezionato,
+        altroRuolo: altroRuoloSpec,
+        cognome: document.getElementById('tesCognome').value.toUpperCase(),
+        nome: document.getElementById('tesNome').value.toUpperCase(),
+        luogoNascita: document.getElementById('tesLuogoNascita').value.toUpperCase(),
+        dataNascita: document.getElementById('tesDataNascita').value,
+        cf: document.getElementById('tesCF').value.toUpperCase(),
+        indirizzo: document.getElementById('tesIndirizzo').value.toUpperCase(),
+        numeroCivico: document.getElementById('tesCivico') ? document.getElementById('tesCivico').value.toUpperCase() : '',
+        cap: document.getElementById('tesCap') ? document.getElementById('tesCap').value : '',
+        comune: document.getElementById('tesComune') ? document.getElementById('tesComune').value.toUpperCase() : '',
+        provincia: document.getElementById('tesProvincia') ? document.getElementById('tesProvincia').value.toUpperCase() : '',
+        cell: document.getElementById('tesCell').value,
+        email: document.getElementById('tesEmail').value,
+        corso: document.getElementById('tesCorso').value,
+        quota: document.getElementById('tesQuota').value || 0,
+        quotaTess: document.getElementById('tesQuotaTess').value || 0,
+        scadenzaMedica: document.getElementById('tesMedica').value,
+        dataIscrizione: document.getElementById('tesDataIscrizione').value,
+        tutoreCognome: document.getElementById('tutoreCognome').value.toUpperCase(),
+        tutoreNome: document.getElementById('tutoreNome').value.toUpperCase(),
+        tutoreCF: document.getElementById('tutoreCF').value.toUpperCase(),
+        status: id ? (tesserati.find(x => x.id === parseInt(id))?.status || 'ACTIVE') : 'ACTIVE'
+    };
+
+    if(!t.cognome || !t.nome || !t.dataNascita || !t.corso) {
+        alert("Attenzione: Compila i campi obbligatori (Cognome, Nome, Data di Nascita e Disciplina)!");
+        return;
+    }
+
+    if(id) { 
+        const idx = tesserati.findIndex(x => x.id === parseInt(id)); 
+        tesserati[idx] = t; 
+    } else { 
+        tesserati.push(t); 
+    }
+    
+    localStorage.setItem('asd_soci', JSON.stringify(tesserati));
+    location.reload();
+}
+
+        function toggleStandby(id) {
+            let tesserati = JSON.parse(localStorage.getItem('asd_soci'));
+            let t = tesserati.find(x => x.id === id);
+            t.status = (t.status === 'STANDBY') ? 'ACTIVE' : 'STANDBY';
+            localStorage.setItem('asd_soci', JSON.stringify(tesserati));
+            renderTesserati();
+        }
+
+        function calcolaDebitoSocio(socioId) {
+            const debiti = JSON.parse(localStorage.getItem('asd_debiti')) || [];
+            const movimentiSocio = debiti.filter(d => String(d.socioId) === String(socioId));
+            
+            return movimentiSocio.reduce((acc, d) => {
+                const importo = parseFloat(d.importo) || 0;
+                const tipo = (d.tipo || '').trim().toUpperCase();
+                
+                if (tipo === 'PAGAMENTO' || tipo === 'ACCONTO' || tipo === 'SALDO') {
+                    return acc - importo;
+                } else {
+                    return acc + importo;
+                }
+            }, 0);
+        }
+
+        function check_mensilita(socio, pagamentiSocio, dataRiferimento) {
+            if (!isAtletaRuolo(socio.ruolo, socio.altroRuolo)) return 0;
+
+            const isStandby = (socio.status || 'ACTIVE') === 'STANDBY';
+            if (isStandby) return 0;
+
+            const dataIscrizioneObj = new Date(socio.dataIscrizione || '2026-01-01');
+            const mesiDovuti = (dataRiferimento.getFullYear() - dataIscrizioneObj.getFullYear()) * 12 + (dataRiferimento.getMonth() - dataIscrizioneObj.getMonth()) + 1;
+            
+            const pagamentiMensiliSocio = pagamentiSocio.filter(p => 
+                (p.tipo === 'MENSILE' || (p.causale && p.causale.toUpperCase().includes('MENSILE')))
+            );
+            
+            return Math.max(0, mesiDovuti - pagamentiMensiliSocio.length);
+        }
+
+        function renderTesserati() {
+            const tesserati = JSON.parse(localStorage.getItem('asd_soci')) || [];
+            const pagamenti = JSON.parse(localStorage.getItem('asd_pagamenti')) || [];
+            const config = JSON.parse(localStorage.getItem('asd_config')) || JSON.parse(localStorage.getItem('config_asd')) || {};
+            const container = document.getElementById('listaTesserati');
+            
+            const logoHtml = config.logo ? `<div class="text-center mb-6"><img src="${config.logo}" alt="Logo ASD" class="h-16 w-auto mx-auto object-contain rounded-xl"></div>` : (config.logoCustom ? `<div class="text-center mb-6"><img src="${config.logoCustom}" alt="Logo ASD" class="h-16 w-auto mx-auto object-contain rounded-xl"></div>` : ''); 
+            
+            if (!container) return;
+
+            let attiviGlob = 0, standbyGlob = 0;
+            tesserati.forEach(s => {
+                if ((s.status || 'ACTIVE') === 'STANDBY') standbyGlob++;
+                else attiviGlob++;
+            });
+            
+            const elActive = document.getElementById('totalActive');
+            const elStandby = document.getElementById('totalStandby');
+            if (elActive) elActive.innerText = attiviGlob;
+            if (elStandby) elStandby.innerText = standbyGlob;
+
+            const containerStats = document.getElementById('statsDiscipline');
+            if (containerStats) {
+                let disciplineLista = config.discipline ? config.discipline.split(',').map(d => d.trim()).filter(d => d !== "") : ['Karate', 'Ginnastica', 'Difesa Personale'];
+                tesserati.forEach(s => {
+                    if (s.corso && !disciplineLista.includes(s.corso)) disciplineLista.push(s.corso);
+                });
+
+                containerStats.innerHTML = disciplineLista.map(disc => {
+                    const attiviDisc = tesserati.filter(s => s.corso === disc && (s.status || 'ACTIVE') !== 'STANDBY').length;
+                    const standbyDisc = tesserati.filter(s => s.corso === disc && s.status === 'STANDBY').length;
+                    return `
+                        <div onclick="filtraDaRiquadro('${disc}')" class="glass p-4 rounded-2xl border border-white/10 flex-1 min-w-[180px] cursor-pointer hover:border-purple-500 hover:scale-[1.02] transition-all">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-[11px] font-black uppercase text-purple-300 italic truncate">${disc}</span>
+                                <span class="text-[9px] bg-purple-500/20 text-purple-300 font-bold px-2 py-0.5 rounded-full">${attiviDisc + standbyDisc} TOT</span>
+                            </div>
+                            <div class="flex justify-between items-center text-xs font-black">
+                                <div class="text-emerald-400 flex items-center gap-1"><span class="text-[9px] text-slate-400 uppercase">Attivi:</span> ${attiviDisc}</div>
+                                <div class="text-amber-500 flex items-center gap-1"><span class="text-[9px] text-slate-400 uppercase">Stand-by:</span> ${standbyDisc}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            const fSearch = document.getElementById('searchTesserato') ? document.getElementById('searchTesserato').value.toUpperCase() : '';
+            const fDisc = document.getElementById('filterDisciplina') ? document.getElementById('filterDisciplina').value : '';
+            const fStato = document.getElementById('filterStato') ? document.getElementById('filterStato').value : 'TUTTI';
+
+            const tesseratiFiltrati = tesserati.filter(s => {
+                const nomeCompleto = `${s.cognome} ${s.nome}`.toUpperCase();
+                if (fSearch && !nomeCompleto.includes(fSearch) && !(s.cf && s.cf.includes(fSearch))) return false;
+                if (fDisc && s.corso !== fDisc) return false;
+                const isStandby = (s.status || 'ACTIVE') === 'STANDBY';
+                if (fStato === 'STANDBY' && !isStandby) return false;
+                if (fStato !== 'TUTTI' && fStato !== 'STANDBY' && isStandby) return false;
+                return true;
+            });
+
+            const tesseratiOrdinatiPerData = [...tesserati].sort((a, b) => new Date(a.dataIscrizione || '2026-01-01') - new Date(b.dataIscrizione || '2026-01-01'));
+            const mappaNumeri = new Map();
+            tesseratiOrdinatiPerData.forEach((s, index) => mappaNumeri.set(s.id, index + 1));
+
+            if (tesseratiFiltrati.length === 0) {
+                container.innerHTML = logoHtml + `<div class="glass p-8 rounded-3xl text-center text-slate-400 uppercase font-bold text-xs">Nessun tesserato trovato</div>`;
+                return;
+            }
+
+            container.innerHTML = logoHtml + tesseratiFiltrati.sort((a, b) => (a.cognome + a.nome).localeCompare(b.cognome + b.nome)).map((s) => {
+                const numeroIscrizione = mappaNumeri.get(s.id) || 0;
+                const pagamentiSocio = pagamenti.filter(p => String(p.socioId) === String(s.id));
+                const oggi = new Date();
+                const isStandby = (s.status || 'ACTIVE') === 'STANDBY';
+                
+                const pagamentiTess = pagamentiSocio.filter(p => (p.tipo === 'TESSERAMENTO' || (p.causale && p.causale.toUpperCase().includes('TESSERAMENTO')))).sort((a,b) => new Date(b.data) - new Date(a.data));
+                const haPagatoTesseramento = pagamentiTess.some(p => new Date(p.data).getFullYear() === new Date().getFullYear());
+                const dataTessStr = (pagamentiTess[0] && pagamentiTess[0].data) ? pagamentiTess[0].data.split('-').reverse().join('/') : (s.dataIscrizione ? s.dataIscrizione.split('-').reverse().join('/') : '');
+
+                const dataIscrizioneObj = new Date(s.dataIscrizione || '2026-01-01');
+                
+                const mensilitaArretrate = check_mensilita(s, pagamentiSocio, oggi);
+
+                const isMedicaScaduta = !s.scadenzaMedica || new Date(s.scadenzaMedica) < oggi;
+                const dataMedicaF = s.scadenzaMedica ? s.scadenzaMedica.split('-').reverse().join('/') : null;
+
+                const statoMedico = isMedicaScaduta ? `<span class="text-red-500">○ CERT. MEDICO ${dataMedicaF ? 'SCADUTO ('+dataMedicaF+')' : 'MANCANTE'}</span>` : `<span class="text-emerald-400">● CERT. MEDICO OK (${dataMedicaF})</span>`;
+                const statoTess = haPagatoTesseramento ? `<span class="text-emerald-400">● TESSERA OK (${dataTessStr})</span>` : `<span class="text-red-500">○ TESSERA SCADUTA</span>`;
+                
+                let statoMensile = '';
+                const isAtleta = isAtletaRuolo(s.ruolo, s.altroRuolo);
+
+                if (!isAtleta) {
+                    statoMensile = `<span class="text-slate-400">INFO: RUOLO NON SOGGETTO A QUOTE</span>`;
+                } else if (isStandby) {
+                    statoMensile = `<span class="text-amber-400 font-bold">⏸️ MENSILITÀ SOSPESE (STAND-BY)</span>`;
+                } else if (mensilitaArretrate === 0) {
+                    statoMensile = `<span class="text-emerald-400">● MENSILITÀ OK</span>`;
+                } else {
+                    statoMensile = `<span class="text-red-500 font-black">[ARRETRATO] ⚠️ ${mensilitaArretrate} MENS.</span>`;
+                }
+                
+                const totaleDebito = calcolaDebitoSocio(s.id);
+                let badgeDebito = totaleDebito > 0 ? `<a href="gestione_debiti.html?socioId=${s.id}" class="bg-red-500/20 border border-red-500/50 px-2.5 py-1 rounded-xl flex items-center gap-1 hover:bg-red-500/40 transition-all"><span class="text-[9px] font-black uppercase text-red-400 italic">Partita Aperta:</span><span class="text-[11px] font-black text-white">€${totaleDebito.toFixed(2)}</span></a>` : '';
+                let borderClass = isStandby ? 'border-amber-500 opacity-60' : (isMedicaScaduta ? 'border-red-600' : (haPagatoTesseramento ? 'border-emerald-500' : 'border-slate-700'));
+                const sString = JSON.stringify(s).replace(/'/g, "&#39;");
+
+                const ruoloLabelVisual = s.ruolo === 'ALTRO' ? (s.altroRuolo || 'ALTRO') : (s.ruolo ? s.ruolo.replace('_', ' ') : 'ATLETA AGONISTA');
+
+                return `
+                <div class="glass p-6 rounded-[2.5rem] border-l-8 ${borderClass} hover:scale-[1.01] transition-all">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <div class="flex gap-4 items-center">
+                                <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">N° ${numeroIscrizione}</span>
+                                <span class="bg-blue-600/20 text-blue-300 px-2 py-0.5 rounded text-[9px] font-black uppercase">${ruoloLabelVisual}</span>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase">Iscritto il: ${dataIscrizioneObj.toLocaleDateString('it-IT')}</span>
+                            </div>
+                            <div class="flex items-center gap-3 mt-1"><h3 class="font-black uppercase italic text-xl">${s.cognome} ${s.nome}</h3>${badgeDebito}</div>
+                            <span class="bg-purple-500/20 px-3 py-1 rounded-lg text-[9px] font-black uppercase text-purple-300 mt-2 block w-max">${s.corso || 'NON ASSEGNATO'}</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="mostraDettaglioMensilita(${s.id})" title="Vedi dettaglio mensilità" class="bg-blue-500/10 p-2.5 rounded-xl hover:bg-blue-500/30">📅</button>
+                            <button onclick='sollecitaCertificato(${sString})' class="bg-red-500/10 p-2.5 rounded-xl hover:bg-red-500/30">🩺</button>
+                            <button onclick='sollecitaPagamento(${sString})' class="bg-amber-500/10 p-2.5 rounded-xl hover:bg-amber-500/30">💸</button>
+                        </div>
+                    </div>
+                    <div class="flex gap-4 mt-4 text-[10px] font-black uppercase flex-wrap">${statoTess} ${statoMensile} ${statoMedico}</div>
+                    <div class="mt-6 flex gap-2 justify-end flex-wrap">
+                        <button onclick="apriModalModulistica(${s.id})" class="bg-emerald-600/20 text-emerald-400 px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-emerald-600/40 transition">MODULO & PDF / MAIL</button>
+                        <button onclick="toggleStandby(${s.id})" class="bg-amber-500/10 text-amber-500 px-4 py-2 rounded-xl text-[10px] font-black uppercase">${isStandby ? 'RIATTIVA' : 'STAND-BY'}</button>
+                        <button onclick="preparaModifica(${s.id})" class="bg-blue-600/20 text-blue-400 px-4 py-2 rounded-xl text-[10px] font-black uppercase">MODIFICA</button>
+                        <button onclick="eliminaTesserato(${s.id})" class="bg-red-600/20 text-red-400 px-4 py-2 rounded-xl text-[10px] font-black uppercase">ELIMINA</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function preparaModifica(id) {
+            const s = tesserati.find(x => x.id === id);
+            if(!s) return;
+            
+            document.getElementById('tesseratoId').value = s.id;
+            document.getElementById('tesRuolo').value = s.ruolo || 'ATLETA_AGONISTA';
+            document.getElementById('tesAltroRuolo').value = s.altroRuolo || '';
+            gestisciVisibilitaQuote();
+
+            document.getElementById('tesCognome').value = s.cognome;
+            document.getElementById('tesNome').value = s.nome;
+            document.getElementById('tesDataNascita').value = s.dataNascita;
+            document.getElementById('tesLuogoNascita').value = s.luogoNascita;
+            document.getElementById('tesCF').value = s.cf;
+            
+            document.getElementById('tesIndirizzo').value = s.indirizzo || '';
+            document.getElementById('tesCivico').value = s.numeroCivico || '';
+            document.getElementById('tesCap').value = s.cap || '';
+            document.getElementById('tesComune').value = s.comune || '';
+            document.getElementById('tesProvincia').value = s.provincia || '';
+            
+            document.getElementById('tesCell').value = s.cell;
+            document.getElementById('tesEmail').value = s.email;
+            document.getElementById('tesCorso').value = s.corso;
+            document.getElementById('tesQuota').value = s.quota || '';
+            document.getElementById('tesQuotaTess').value = s.quotaTess || '';
+            document.getElementById('tesMedica').value = s.scadenzaMedica;
+            document.getElementById('tesDataIscrizione').value = s.dataIscrizione;
+            
+            document.getElementById('tutoreCognome').value = s.tutoreCognome || '';
+            document.getElementById('tutoreNome').value = s.tutoreNome || '';
+            document.getElementById('tutoreCF').value = s.tutoreCF || '';
+            
+            checkMinorenne();
+            document.getElementById('formTitle').innerText = "📝 Modifica Tesserato";
+            document.getElementById('tesRuolo').focus();
+        }
+
+        function eliminaTesserato(id) {
+            if(confirm("Sicuro di voler eliminare definitivamente questo tesserato?")) {
+                tesserati = tesserati.filter(x => x.id !== id);
+                localStorage.setItem('asd_soci', JSON.stringify(tesserati));
+                renderTesserati();
+            }
+        }
+
+        function checkCompleanni() {
+            const oggi = new Date();
+            const mmGgOggi = `${String(oggi.getMonth()+1).padStart(2,'0')}-${String(oggi.getDate()).padStart(2,'0')}`;
+            const festeggiati = tesserati.filter(s => s.dataNascita && s.dataNascita.substring(5) === mmGgOggi);
+            
+            if(festeggiati.length > 0) {
+                document.getElementById('birthdayAlert').classList.remove('hidden');
+                document.getElementById('birthdayNames').innerText = festeggiati.map(s => `${s.cognome} ${s.nome} (${calcolaEta(s.dataNascita)} anni)`).join(', ');
+            }
+        }
+
+        function mostraDettaglioMensilita(socioId) {
+            const tesserati = JSON.parse(localStorage.getItem('asd_soci')) || [];
+            const pagamenti = JSON.parse(localStorage.getItem('asd_pagamenti')) || [];
+            const socio = tesserati.find(s => s.id == socioId);
+            
+            if (!socio) return alert("Socio non trovato!");
+
+            const isAtleta = isAtletaRuolo(socio.ruolo, socio.altroRuolo);
+            if (!isAtleta) return alert("Questo tesserato non è un atleta e non prevede mensilità.");
+
+            const isStandby = (socio.status || 'ACTIVE') === 'STANDBY';
+            const dIsc = new Date(socio.dataIscrizione || '2026-01-01');
+            const dataIscrizione = new Date(dIsc.getFullYear(), dIsc.getMonth(), 1);
+            const oggi = new Date();
+            
+            let html = `
+                <div class="bg-slate-900 border border-white/10 p-8 rounded-3xl w-full max-w-2xl shadow-2xl">
+                    <h2 class="text-white font-black text-2xl mb-2">Mensilità: ${socio.nome} ${socio.cognome}</h2>
+                    ${isStandby ? `<div class="mb-4 p-3 bg-amber-500/20 border border-amber-500/40 rounded-xl text-amber-300 font-bold text-xs uppercase flex items-center gap-2">⏸️ TESSERATO IN STAND-BY: Le mensilità non saldate sono congelate e sospese</div>` : ''}
+                    <div class="grid grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto pr-2 mt-4">`;
+
+            let iteratore = new Date(dataIscrizione);
+            const nomiMesi = ["GENNAIO", "FEBBRAIO", "MARZO", "APRILE", "MAGGIO", "GIUGNO", "LUGLIO", "AGOSTO", "SETTEMBRE", "OTTOBRE", "NOVEMBRE", "DICEMBRE"];
+
+            while (iteratore <= oggi) {
+                const meseIndex = iteratore.getMonth();
+                const annoIndex = iteratore.getFullYear();
+                const meseAnno = iteratore.toLocaleString('it-IT', { month: 'long', year: 'numeric' });
+                const nomeMeseStr = nomiMesi[meseIndex];
+
+                const pagamentoTrovato = pagamenti.find(p => {
+                    if (p.tipo === 'GIROCONTO' || String(p.socioId) !== String(socioId)) return false;
+                    
+                    const causaleUpper = (p.causale || "").toUpperCase();
+                    const attivitaUpper = (p.attivita || "").toUpperCase();
+                    
+                    const eTesseramento = p.tipo === 'TESSERAMENTO' || 
+                                          causaleUpper.includes("TESSER") || 
+                                          causaleUpper.includes("ISCRIZ") || 
+                                          causaleUpper.includes("ASSOCIATIV");
+                    if (eTesseramento) return false;
+
+                    if (attivitaUpper.includes("MENSILE")) {
+                        return attivitaUpper.includes(nomeMeseStr) && attivitaUpper.includes(String(annoIndex));
+                    }
+
+                    if (p.data) {
+                        const parts = p.data.split('-');
+                        let aPag = parseInt(parts[0], 10);
+                        let mPag = parseInt(parts[1], 10) - 1;
+                        return mPag === meseIndex && aPag === annoIndex;
+                    }
+
+                    return false;
+                });
+
+                const pagato = !!pagamentoTrovato;
+                let dataPagamentoFormatted = '';
+                if (pagamentoTrovato && pagamentoTrovato.data) {
+                    dataPagamentoFormatted = pagamentoTrovato.data.split('-').reverse().join('/');
+                }
+
+                const meseReale = meseIndex + 1;
+                const action = !pagato ? `onclick="window.location.href='contabilita.html?socioId=${socioId}&mese=${meseReale}&anno=${annoIndex}&importo=${socio.quota || 0}'"` : '';
+                
+                if (pagato) {
+                    html += `
+                        <div class="p-4 rounded-xl flex justify-between items-center border-l-4 border-emerald-500 bg-emerald-500/10">
+                            <div>
+                                <p class="text-white font-bold capitalize text-sm">${meseAnno}</p>
+                                ${dataPagamentoFormatted ? `<p class="text-[11px] font-bold text-emerald-400 mt-0.5">Pagato il: ${dataPagamentoFormatted}</p>` : ''}
+                            </div>
+                            <span class="text-emerald-400 font-black text-xs">PAGATO</span>
+                        </div>`;
+                } else if (isStandby) {
+                    html += `
+                        <div class="p-4 rounded-xl flex justify-between items-center border-l-4 border-amber-500 bg-amber-500/10">
+                            <div>
+                                <p class="text-white font-bold capitalize text-sm">${meseAnno}</p>
+                                <p class="text-[11px] font-bold text-amber-400 mt-0.5">Sospesa per Stand-by</p>
+                            </div>
+                            <span class="text-amber-400 font-black text-xs">SOSPESO</span>
+                        </div>`;
+                } else {
+                    html += `
+                        <div ${action} class="p-4 rounded-xl flex justify-between items-center border-l-4 border-red-500 bg-red-500/10 cursor-pointer hover:bg-white/10">
+                            <span class="text-white font-bold capitalize text-sm">${meseAnno}</span>
+                            <span class="text-red-400 font-black text-xs">REGISTRA PAGAMENTO</span>
+                        </div>`;
+                }
+                
+                iteratore.setMonth(iteratore.getMonth() + 1);
+            }
+
+            html += `</div>
+                    <button onclick="document.getElementById('modalMensilita').style.display='none'" class="mt-8 w-full bg-slate-700 text-white p-4 rounded-2xl font-black uppercase text-sm hover:bg-slate-600">CHIUDI</button>
+                </div>`;
+            
+            const modal = document.getElementById('modalMensilita');
+            modal.innerHTML = html;
+            modal.style.display = 'flex';
+        }
+
+        function filtraDaRiquadro(valoreFiltro) {
+            const selFiltro = document.getElementById('filterDisciplina');
+            if (selFiltro) {
+                selFiltro.value = valoreFiltro;
+                renderTesserati();
+            }
+        }
+
+        function generaHtmlDocumento(s) {
+            const config = JSON.parse(localStorage.getItem('asd_config')) || JSON.parse(localStorage.getItem('config_asd')) || { nome: 'Nessuna ASD configurata', cf: '', via: '', citta: '' };
+            const eta = calcolaEta(s.dataNascita);
+            const dataOggi = new Date().toLocaleDateString('it-IT');
+            const dataNascitaFormatted = s.dataNascita ? s.dataNascita.split('-').reverse().join('/') : '---';
+            const ruoloLabelDoc = s.ruolo === 'ALTRO' ? (s.altroRuolo || 'ALTRO') : (s.ruolo ? s.ruolo.replace('_', ' ') : 'ATLETA AGONISTA');
+
+            let logoElementoHtml = '';
+            if (config.logo) {
+                logoElementoHtml = `<img src="${config.logo}" style="height: 55px; margin-bottom: 5px; object-fit: contain; max-width: 100%;">`;
+            } else if (config.logoCustom) {
+                logoElementoHtml = `<img src="${config.logoCustom}" style="height: 55px; margin-bottom: 5px; object-fit: contain; max-width: 100%;">`;
+            }
+
+            let sezioneTutoreHtml = '';
+            let testoFirmatario = 'Firma del Socio / Tesserato Maggiorenne';
+
+            if (eta < 18) {
+                sezioneTutoreHtml = `
+                    <div style="margin-top: 10px; padding: 10px; background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px;">
+                        <span style="font-size: 11px; font-weight: bold; color: #1e293b; text-transform: uppercase;">Dati del Genitore / Esercente la Responsabilità Genitoriale (per socio minorenne):</span>
+                        <table style="width: 100%; border-collapse: collapse; margin-top: 6px;">
+                            <tr>
+                                <td style="padding: 2px 0; font-size: 11px; font-weight: bold; width: 22%;">Cognome e Nome:</td>
+                                <td style="padding: 2px 0; font-size: 11px; border-bottom: 1px solid #cbd5e1; width: 43%;"><strong>${s.tutoreCognome || '___________________'} ${s.tutoreNome || '___________________'}</strong></td>
+                                <td style="padding: 2px 0; font-size: 11px; font-weight: bold; padding-left:10px; width:10%;">C.F.:</td>
+                                <td style="padding: 2px 0; font-size: 11px; border-bottom: 1px solid #cbd5e1;"><strong>${s.tutoreCF || '___________________'}</strong></td>
+                            </tr>
+                        </table>
+                    </div>
+                `;
+                testoFirmatario = 'Firma Genitore / Esercente Resp. Genitoriale';
+            }
+
+            return `
+            <div style="font-family: Arial, Helvetica, sans-serif; font-size: 11.5px; color: #111; line-height: 1.4; padding: 20px; background: #ffffff; width: 100%; box-sizing: border-box; display: block;">
+                <div style="text-align: center; margin-bottom: 14px; border-bottom: 2px solid #000; padding-bottom: 8px;">
+                    ${logoElementoHtml}
+                    <h1 style="margin: 0; font-size: 18px; text-transform: uppercase; font-weight: bold; color:#000;">${config.nome}</h1>
+                    <p style="margin: 3px 0; font-size: 10px; color: #333; text-transform: uppercase;">Sede Legale: ${config.via || '---'} - ${config.citta || '---'} | Cod. Fiscale / P.IVA: ${config.cf || '---'}</p>
+                </div>
+
+                <div style="text-align: center; font-size: 12px; font-weight: bold; text-transform: uppercase; margin-bottom: 12px; background-color: #e2e8f0; padding: 6px; border: 1px solid #94a3b8; color:#000;">
+                    DOMANDA DI ADESIONE TESSERATO, TESSERAMENTO SPORTIVO ED INFORMATIVA PRIVACY GDPR
+                </div>
+
+                <div style="margin-bottom: 12px;">
+                    <h3 style="margin: 0 0 5px 0; font-size: 12px; text-transform: uppercase; border-bottom: 1px solid #000; padding-bottom: 2px; font-weight: bold; color:#000;">1. Dati Anagrafici e Ruolo del Tesserato</h3>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <td style="padding: 3px 0; font-size: 11px; font-weight: bold; width: 18%;">Ruolo Richiesto:</td>
+                            <td style="padding: 3px 0; font-size: 11px; border-bottom: 1px solid #cbd5e1;" colspan="3"><strong>${ruoloLabelDoc}</strong></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 3px 0; font-size: 11px; font-weight: bold; width: 18%;">Cognome e Nome:</td>
+                            <td style="padding: 3px 0; font-size: 11px; border-bottom: 1px solid #cbd5e1; width: 45%;"><strong>${s.cognome} ${s.nome}</strong></td>
+                            <td style="padding: 3px 0; font-size: 11px; font-weight: bold; padding-left:10px; width:10%;">C.F.:</td>
+                            <td style="padding: 3px 0; font-size: 11px; border-bottom: 1px solid #cbd5e1;"><strong>${s.cf || '---'}</strong></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 3px 0; font-size: 11px; font-weight: bold;">Luogo e Data Nascita:</td>
+                            <td style="padding: 3px 0; font-size: 11px; border-bottom: 1px solid #cbd5e1;">${s.luogoNascita || '---'} - ${dataNascitaFormatted} (${eta} anni)</td>
+                            <td style="padding: 3px 0; font-size: 11px; font-weight: bold; padding-left:10px;">Disciplina:</td>
+                            <td style="padding: 3px 0; font-size: 11px; border-bottom: 1px solid #cbd5e1;"><strong>${s.corso || '---'}</strong></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 3px 0; font-size: 11px; font-weight: bold;">Indirizzo Residenza:</td>
+                            <td style="padding: 3px 0; font-size: 11px; border-bottom: 1px solid #cbd5e1;" colspan="3">${s.indirizzo || ''} ${s.numeroCivico || ''} - ${s.cap || ''} ${s.comune || ''} (${s.provincia || ''})</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 3px 0; font-size: 11px; font-weight: bold;">Recapiti Telefonici:</td>
+                            <td style="padding: 3px 0; font-size: 11px; border-bottom: 1px solid #cbd5e1;">${s.cell || '---'}</td>
+                            <td style="padding: 3px 0; font-size: 11px; font-weight: bold; padding-left:10px;">Email:</td>
+                            <td style="padding: 3px 0; font-size: 11px; border-bottom: 1px solid #cbd5e1; text-transform:none;">${s.email || '---'}</td>
+                        </tr>
+                    </table>
+                    ${sezioneTutoreHtml}
+                </div>
+
+                <div style="margin-bottom: 12px;">
+                    <h3 style="margin: 0 0 4px 0; font-size: 12px; text-transform: uppercase; border-bottom: 1px solid #000; padding-bottom: 2px; font-weight: bold; color:#000;">2. Domanda di Ammissione e Dichiarazione di Manleva</h3>
+                    <p style="margin: 2px 0; text-align: justify; font-size: 10.5px;">
+                        Il/La sottoscritto/a richiede l'ammissione quale Socio/Tesserato dell'Associazione per l'anno sportivo in corso. Dichiara di aver preso visione dello Statuto Sociale e del Regolamento Interno, accettandoli integralmente. Dichiara di sollevare l'Associazione, i suoi dirigenti e gli istruttori da ogni responsabilità per infortuni o danni derivanti dall'inosservanza delle prescrizioni tecniche o regolamentari.
+                    </p>
+                </div>
+
+                <div style="margin-bottom: 12px;">
+                    <h3 style="margin: 0 0 4px 0; font-size: 12px; text-transform: uppercase; border-bottom: 1px solid #000; padding-bottom: 2px; font-weight: bold; color:#000;">3. Tutela Sanitaria (D.M. 24/04/2013 e s.m.i.)</h3>
+                    <p style="margin: 2px 0; text-align: justify; font-size: 10.5px;">
+                        Si impegna a consegnare idoneo Certificato Medico per la pratica sportiva in corso di validità prima dell'inizio delle attività. Dichiara di essere consapevole che la mancata o tardiva consegna del certificato comporta la sospensione immediata dall'attività sportiva.
+                    </p>
+                </div>
+
+                <div style="margin-bottom: 10px; padding: 8px; border: 1px solid #cbd5e1; background-color: #f8fafc;">
+                    <h3 style="margin: 0 0 3px 0; font-size: 11.5px; text-transform: uppercase; font-weight: bold; color:#000;">4. Informativa sul Trattamento dei Dati Personali (Art. 13-14 Reg. UE 2016/679 GDPR)</h3>
+                    <p style="margin: 2px 0; text-align: justify; font-size: 10px; line-height: 1.3;">
+                        I dati forniti saranno trattati dall'A.S.D. (Titolare del Trattamento) unicamente per la gestione del rapporto associativo, l'organizzazione di corsi e manifestazioni, l'adempimento di obblighi fiscali e legali, e la trasmissione ai Registri del CONI, Dipartimento dello Sport e alla Federazione/EPS affiliata per la copertura assicurativa. I dati non saranno ceduti a terzi per finalità commerciali.
+                    </p>
+                    <div style="margin-top: 5px; font-size: 10.5px; font-weight: bold;">
+                        <span>a) Gestione Iscrizione, Tesseramento e Copertura Assicurativa (Obbligatorio):</span><br>
+                        [ &nbsp; ] <strong>ACCONSENTO</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [ &nbsp; ] <strong>NON ACCONSENTO</strong>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 10px; padding: 8px; border: 1px solid #cbd5e1; background-color: #f8fafc;">
+                    <h3 style="margin: 0 0 3px 0; font-size: 11.5px; text-transform: uppercase; font-weight: bold; color:#000;">5. Liberatoria Foto, Video e Diritti d'Immagine</h3>
+                    <p style="margin: 2px 0; text-align: justify; font-size: 10px; line-height: 1.3;">
+                        Autorizza a titolo gratuito l'A.S.D. ad effettuare ed utilizzare riprese fotografiche e audio/video realizzate durante le attività associative o le gare sportive. L'utilizzo è destinato esclusivamente ai canali promozionali ed istituzionali dell'ASD.
+                    </p>
+                    <div style="margin-top: 5px; font-size: 10.5px; font-weight: bold;">
+                        <span>b) Pubblicazione e diffusione di Foto/Video sui canali istituzionali/Social dell'ASD:</span><br>
+                        [ &nbsp; ] <strong>ACCONSENTO</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [ &nbsp; ] <strong>NON ACCONSENTO</strong>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 10px; padding: 8px; border: 1px solid #cbd5e1; background-color: #f8fafc;">
+                    <h3 style="margin: 0 0 3px 0; font-size: 11.5px; text-transform: uppercase; font-weight: bold; color:#000;">6. Comunicazioni Operative e Informative Associative</h3>
+                    <div style="font-size: 10.5px; font-weight: bold;">
+                        <span>c) Ricezione messaggi di servizio (Orari, Varie, Avvisi tramite WhatsApp/SMS/Email):</span><br>
+                        [ &nbsp; ] <strong>ACCONSENTO</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [ &nbsp; ] <strong>NON ACCONSENTO</strong>
+                    </div>
+                </div>
+
+                <div style="margin-top: 15px;">
+                    <p style="font-size: 11px; color:#000; margin-bottom: 20px;">Luogo e Data: <strong>${config.citta || 'Palermo'}, lì ${dataOggi}</strong></p>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <td style="width: 48%; text-align: center; vertical-align: top;">
+                                <p style="font-size: 10px; margin-bottom: 35px; color:#111; font-weight: bold;">Firma 1: Accettazione Domanda, Statuto e Manleva</p>
+                                <div style="border-top: 1px solid #000; width: 85%; margin: 0 auto;"></div>
+                                <span style="font-size: 9px; color: #444;">(${testoFirmatario})</span>
+                            </td>
+                            <td style="width: 4%;"></td>
+                            <td style="width: 48%; text-align: center; vertical-align: top;">
+                                <p style="font-size: 10px; margin-bottom: 35px; color:#111; font-weight: bold;">Firma 2: Consensi Privacy, Foto/Video e Comunicazioni</p>
+                                <div style="border-top: 1px solid #000; width: 85%; margin: 0 auto;"></div>
+                                <span style="font-size: 9px; color: #444;">(${testoFirmatario})</span>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>`;
+        }
+
+        function apriModalModulistica(id) {
+            idSocioCorrenteModulistica = id;
+            const tesserati = JSON.parse(localStorage.getItem('asd_soci')) || [];
+            const socio = tesserati.find(s => String(s.id) === String(id));
+            if (!socio) return alert("Socio non trovato!");
+
+            const htmlDoc = generaHtmlDocumento(socio);
+            document.getElementById('contenitoreAnteprimaPDF').innerHTML = htmlDoc;
+            document.getElementById('modalModulisticaPDF').classList.remove('hidden');
+            document.getElementById('modalModulisticaPDF').style.display = 'flex';
+        }
+
+        function chiudiModalModulistica() {
+            document.getElementById('modalModulisticaPDF').classList.add('hidden');
+            document.getElementById('modalModulisticaPDF').style.display = 'none';
+        }
+
+        function scaricaPDFDaModal() {
+            if (!idSocioCorrenteModulistica) return;
+            const tesserati = JSON.parse(localStorage.getItem('asd_soci')) || [];
+            const socio = tesserati.find(s => String(s.id) === String(idSocioCorrenteModulistica));
+            if (!socio) return;
+
+            const contentHtml = generaHtmlDocumento(socio);
+            const win = window.open('', '_blank');
+            if (!win) {
+                return alert("Attenzione: sblocca i popup del browser per visualizzare e scaricare il modulo!");
+            }
+
+            win.document.write(`
+                <!DOCTYPE html>
+                <html lang="it">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Modulo Iscrizione - ${socio.cognome} ${socio.nome}</title>
+                    <style>
+                        @page { size: A4 portrait; margin: 10mm; }
+                        body { margin: 0; padding: 0; background: #ffffff; font-family: Arial, sans-serif; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                        @media print { .no-print { display: none !important; } }
+                    </style>
+                </head>
+                <body>${contentHtml}</body>
+                </html>
+            `);
+            win.document.close();
+            setTimeout(() => { win.focus(); win.print(); }, 400);
+        }
+
+        function copiaTestoModuloDaModal() {
+            if (!idSocioCorrenteModulistica) return;
+            const tesserati = JSON.parse(localStorage.getItem('asd_soci')) || [];
+            const socio = tesserati.find(s => String(s.id) === String(idSocioCorrenteModulistica));
+            if (!socio) return;
+
+            const htmlContent = generaHtmlDocumento(socio);
+
+            const blobHtml = new Blob([htmlContent], { type: 'text/html' });
+            const blobText = new Blob([generaTestoModuloPuro(socio)], { type: 'text/plain' });
+            
+            const data = [new ClipboardItem({ 'text/html': blobHtml, 'text/plain': blobText })];
+
+            navigator.clipboard.write(data).then(() => {
+                mostraNotificaCopia("📋 Modulo formattato copiato! Incollalo nella mail (CTRL+V)");
+            }).catch(err => {
+                navigator.clipboard.writeText(generaTestoModuloPuro(socio));
+                mostraNotificaCopia("📋 Testo copiato negli appunti!");
+            });
+        }
+
+        function generaTestoModuloPuro(s) {
+            const config = JSON.parse(localStorage.getItem('asd_config')) || JSON.parse(localStorage.getItem('config_asd')) || {};
+            return `DOMANDA DI ADESIONE E TESSERAMENTO - ${config.nome || 'ASD'}
+
+DATI TESSERATO:
+- Ruolo: ${s.ruolo || 'ATLETA'}
+- Cognome e Nome: ${s.cognome} ${s.nome}
+- Codice Fiscale: ${s.cf || '---'}
+- Data e Luogo di Nascita: ${s.dataNascita ? s.dataNascita.split('-').reverse().join('/') : '---'} a ${s.luogoNascita || '---'}
+- Disciplina: ${s.corso || '---'}
+- Residenza: ${s.indirizzo || ''} ${s.numeroCivico || ''}, ${s.cap || ''} ${s.comune || ''} (${s.provincia || ''})
+- Recapiti: Cell. ${s.cell || '---'} | Email: ${s.email || '---'}
+
+DICHIARAZIONI:
+Il/La sottoscritto/a chiede l'ammissione quale Socio/Tesserato accettando lo Statuto Sociale, il Regolamento Interno e l'informativa sulla Privacy (GDPR).
+`;
+        }
+
+        function inviaMailModuloDaModal() {
+            if (!idSocioCorrenteModulistica) return;
+            const tesserati = JSON.parse(localStorage.getItem('asd_soci')) || [];
+            const socio = tesserati.find(s => String(s.id) === String(idSocioCorrenteModulistica));
+            if (!socio) return;
+
+            const htmlContenuto = document.getElementById('contenitoreAnteprimaPDF').innerHTML;
+
+            const blobHtml = new Blob([htmlContenuto], { type: 'text/html' });
+            const blobText = new Blob([generaTestoModuloPuro(socio)], { type: 'text/plain' });
+            const data = [new ClipboardItem({ 'text/html': blobHtml, 'text/plain': blobText })];
+
+            navigator.clipboard.write(data).then(() => {
+                console.log("Modulo formattato copiato negli appunti");
+            }).catch(err => {
+                navigator.clipboard.writeText(generaTestoModuloPuro(socio));
+            });
+
+            const emailDestinatario = socio.email ? socio.email.trim() : '';
+            const oggetto = encodeURIComponent("Modulo di Iscrizione e Tesseramento - " + socio.cognome + " " + socio.nome);
+            const corpo = encodeURIComponent(
+                `Salve ${socio.nome},\n\n` +
+                `In allegato/copia trovi il modulo di iscrizione e tesseramento.\n\n` +
+                `Cordiali saluti.`
+            );
+
+            if (emailDestinatario) {
+                const urlGmail = `https://mail.google.com/mail/?view=cm&fs=1&to=${emailDestinatario}&su=${oggetto}&body=${corpo}`;
+                const win = window.open(urlGmail, '_blank');
+                if (!win) {
+                    window.location.href = `mailto:${emailDestinatario}?subject=${oggetto}&body=${corpo}`;
+                }
+            } else {
+                alert("Attenzione: Il tesserato selezionato non ha un indirizzo email registrato nell'anagrafica.");
+            }
+        }
+        
+        function inviaMailTesserato(id) {
+            apriModalModulistica(id);
+        }
+
+        function mostraNotificaCopia(messaggio) {
+            const notifica = document.createElement('div');
+            notifica.style.position = 'fixed';
+            notifica.style.top = '20px';
+            notifica.style.right = '20px';
+            notifica.style.background = '#10b981';
+            notifica.style.color = '#ffffff';
+            notifica.style.padding = '12px 24px';
+            notifica.style.borderRadius = '12px';
+            notifica.style.fontWeight = 'bold';
+            notifica.style.fontSize = '12px';
+            notifica.style.textTransform = 'uppercase';
+            notifica.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.3)';
+            notifica.style.zIndex = '999999';
+            notifica.innerText = messaggio;
+
+            document.body.appendChild(notifica);
+            setTimeout(() => { notifica.remove(); }, 3000);
+        }
+
+        function sollecitaCertificato(s) {
+            const config = JSON.parse(localStorage.getItem('asd_config')) || JSON.parse(localStorage.getItem('config_asd')) || { nome: 'Nessuna ASD configurata' };
+            const scadenza = s.scadenzaMedica ? s.scadenzaMedica.split('-').reverse().join('/') : 'SCADUTO';
+            const messaggio = `Ciao ${s.nome}, ti ricordiamo che il tuo certificato medico sportivo per il corso di ${s.corso} risulta in attesa di rinnovo o scaduto (Scadenza: ${scadenza}). Ti invitiamo a consegnare la copia aggiornata al più presto per poter continuare le attività in sicurezza. Grazie! ${config.nome}`;
+            
+            navigator.clipboard.writeText(messaggio).then(() => {
+                if (s.email) {
+                    const subject = encodeURIComponent(`Sollecito Certificato Medico - ${s.cognome} ${s.nome}`);
+                    const body = encodeURIComponent(messaggio);
+                    window.location.href = `mailto:${s.email}?subject=${subject}&body=${body}`;
+                    mostraNotificaCopia(`✉️ Client Email avviato!`);
+                } else if (s.cell) {
+                    window.open(`https://wa.me/${s.cell.replace(/\s+/g, '')}?text=${encodeURIComponent(messaggio)}`, '_blank');
+                    mostraNotificaCopia(`💬 WhatsApp avviato (Manca Email)!`);
+                } else {
+                    alert(`Nessun recapito per ${s.cognome} ${s.nome}.\nTesto copiato negli appunti.`);
+                }
+            });
+        }
+
+        function sollecitaPagamento(s) {
+            const config = JSON.parse(localStorage.getItem('asd_config')) || JSON.parse(localStorage.getItem('config_asd')) || { nome: 'Nessuna ASD configurata' };
+            const messaggio = `Ciao ${s.nome}, ti ricordiamo che è necessario regolarizzare la quota di iscrizione/mensilità per la disciplina di ${s.corso}. Se hai già provveduto, ti chiediamo gentilmente di inviarci la contabile o la ricevuta del pagamento. Grazie per la collaborazione! ${config.nome}`;
+            
+            navigator.clipboard.writeText(messaggio).then(() => {
+                if (s.email) {
+                    const subject = encodeURIComponent(`Sollecito Quota d'Iscrizione - ${s.cognome} ${s.nome}`);
+                    const body = encodeURIComponent(messaggio);
+                    window.location.href = `mailto:${s.email}?subject=${subject}&body=${body}`;
+                    mostraNotificaCopia(`✉️ Client Email avviato!`);
+                } else if (s.cell) {
+                    window.open(`https://wa.me/${s.cell.replace(/\s+/g, '')}?text=${encodeURIComponent(messaggio)}`, '_blank');
+                    mostraNotificaCopia(`💬 WhatsApp avviato (Manca Email)!`);
+                } else {
+                    alert(`Nessun recapito per ${s.cognome} ${s.nome}.\nTesto copiato negli appunti.`);
+                }
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestione Gradi, Esami e Gare - ASD IKSA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .glass { background: rgba(255,255,255,0.05); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.1); }
+        body { background: #0f172a; color: white; min-height: 100vh; font-family: sans-serif; }
+        .input-asd { width: 100%; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); padding: 10px 14px; border-radius: 10px; outline: none; color: white; font-size: 14px; }
+        .input-asd:focus { border-color: #fbbf24; }
+        .label-asd { font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 6px; display: block; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <header class="mb-8 flex justify-between items-center border-b border-white/10 pb-4">
+            <div class="flex items-center gap-4">
+                <div id="asdLogoBadge" class="w-14 h-14 bg-amber-500 rounded-2xl flex items-center justify-center font-black italic text-black text-2xl shadow-xl border border-white/20 overflow-hidden">IK</div>
+                <div>
+                    <h1 class="text-3xl font-black text-amber-400 uppercase italic">🥋 Gradi, Esami & Gare Tesserati</h1>
+                    <p id="headerAsdName" class="text-slate-400 text-xs font-bold uppercase tracking-widest">Caricamento ASD...</p>
+                </div>
+            </div>
+            <div class="flex gap-4">
+                <a href="tesserati.html" class="bg-purple-600 px-6 py-2.5 rounded-xl font-bold uppercase text-xs hover:bg-purple-500 transition shadow-lg">Gestione Tesserati</a>
+                <a href="index.html" class="bg-slate-700 px-6 py-2.5 rounded-xl font-bold uppercase text-xs hover:bg-slate-600 transition shadow-lg">Home Dashboard</a>
+            </div>
+        </header>
+
+        <!-- Layout Principale a Due Colonne -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- Colonna Sinistra: Selezione Tesserato e Inserimento Dati -->
+            <div class="lg:col-span-5">
+                <div class="glass p-6 md:p-8 rounded-3xl sticky top-8 border-t-2 border-amber-400 shadow-2xl">
+                    <h2 class="text-xl font-black mb-6 text-amber-400 uppercase italic flex items-center gap-2">
+                        <span>📝</span> Scheda Tecnica Sportiva
+                    </h2>
+                    
+                    <div class="space-y-5">
+                        <!-- Selezione Tesserato -->
+                        <div>
+                            <label class="label-asd text-amber-300">1. Seleziona Tesserato</label>
+                            <select id="selectSocio" class="input-asd bg-slate-900 font-bold uppercase" onchange="caricaDatiTesseratoSelezionato()">
+                                <option value="">-- SELEZIONA UN TESSERATO --</option>
+                            </select>
+                        </div>
+
+                        <!-- Grado di Cintura -->
+                        <div class="p-4 bg-amber-500/10 rounded-2xl border border-amber-500/20 space-y-4">
+                            <h3 class="text-xs font-black text-amber-400 uppercase tracking-wider">🥋 Grado di Cintura Attuale</h3>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="label-asd">Colore / Cintura</label>
+                                    <select id="cinturaColore" class="input-asd bg-slate-900">
+                                        <option value="BIANCA">BIANCA</option>
+                                        <option value="BIANCA-GIALLA">BIANCA-GIALLA</option>
+                                        <option value="GIALLA">GIALLA</option>
+                                        <option value="GIALLA-ARANCIO">GIALLA-ARANCIO</option>
+                                        <option value="ARANCIO">ARANCIO</option>
+                                        <option value="ARANCIO-VERDE">ARANCIO-VERDE</option>
+                                        <option value="VERDE">VERDE</option>
+                                        <option value="VERDE-BLU">VERDE-BLU</option>
+                                        <option value="BLU">BLU</option>
+                                        <option value="MARRONE">MARRONE</option>
+                                        <option value="NERA">NERA (1° DAN)</option>
+                                        <option value="NERA_2_DAN">NERA (2° DAN)</option>
+                                        <option value="NERA_3_DAN">NERA (3° DAN +)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="label-asd">Data Conseguimento</label>
+                                    <input type="date" id="cinturaData" class="input-asd bg-slate-900">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Inserimento Esame -->
+                        <div class="p-4 bg-purple-500/10 rounded-2xl border border-purple-500/20 space-y-3">
+                            <h3 class="text-xs font-black text-purple-300 uppercase tracking-wider">🎓 Registra Nuovo Esame</h3>
+                            <div>
+                                <label class="label-asd">Esame Sostenuto / Grado Conseguito</label>
+                                <input type="text" id="esameTitolo" placeholder="ES. ESAME CINTURA MARRONE" class="input-asd bg-slate-900 uppercase">
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="label-asd">Data Esame</label>
+                                    <input type="date" id="esameData" class="input-asd bg-slate-900">
+                                </div>
+                                <div>
+                                    <label class="label-asd">Esito / Note</label>
+                                    <input type="text" id="esameNote" placeholder="ES. OTTIMO / 30/30" class="input-asd bg-slate-900 uppercase">
+                                </div>
+                            </div>
+                            <button onclick="aggiungiEsame()" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-black py-2.5 rounded-xl uppercase text-xs transition shadow-md">+ Aggiungi Esame allo Storico</button>
+                        </div>
+
+                        <!-- Inserimento Gara -->
+                        <div class="p-4 bg-blue-500/10 rounded-2xl border border-blue-500/20 space-y-3">
+                            <h3 class="text-xs font-black text-blue-300 uppercase tracking-wider">🏆 Registra Partecipazione Gara</h3>
+                            <div>
+                                <label class="label-asd">Nome della Competizione / Torneo</label>
+                                <input type="text" id="garaNome" placeholder="ES. CAMPIONATO REGIONALE KATA" class="input-asd bg-slate-900 uppercase">
+                            </div>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div>
+                                    <label class="label-asd">Data Gara</label>
+                                    <input type="date" id="garaData" class="input-asd bg-slate-900">
+                                </div>
+                                <div>
+                                    <label class="label-asd">Specialità</label>
+                                    <input type="text" id="garaSpecialita" placeholder="KATA / KUMITE" class="input-asd bg-slate-900 uppercase">
+                                </div>
+                                <div>
+                                    <label class="label-asd">Piazzamento / Risultato</label>
+                                    <input type="text" id="garaRisultato" placeholder="ES. 1° POSTO ORO" class="input-asd bg-slate-900 uppercase font-bold text-amber-400">
+                                </div>
+                            </div>
+                            <button onclick="aggiungiGara()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-2.5 rounded-xl uppercase text-xs transition shadow-md">+ Aggiungi Gara al Palmares</button>
+                        </div>
+
+                        <button onclick="salvaTuttoProfiloSportivo()" class="w-full bg-amber-500 hover:bg-amber-400 text-black font-black py-4 rounded-2xl uppercase tracking-wider text-sm transition-all shadow-xl">
+                            💾 SALVA MODIFICHE PROFILO
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Colonna Destra: Riepilogo e Storico Atleta Selezionato -->
+            <div class="lg:col-span-7 space-y-6">
+                <!-- Barra di Ricerca rapida tra i tesserati con storico -->
+                <div class="glass p-4 rounded-2xl flex items-center gap-4">
+                    <span class="text-xl">🔍</span>
+                    <input type="text" id="searchScheda" onkeyup="filtraListaSchede()" placeholder="Cerca atleta per nome o cintura..." class="w-full bg-transparent border-none outline-none uppercase text-sm text-white">
+                </div>
+
+                <!-- Scheda Dettaglio Atleta Attivo -->
+                <div id="dettaglioAtletaContainer" class="glass p-6 md:p-8 rounded-3xl border border-white/10">
+                    <div class="text-center py-12 text-slate-400">
+                        <div class="text-5xl mb-3">🥋</div>
+                        <p class="font-bold uppercase text-xs tracking-widest">Seleziona un tesserato dal menu a tendina a sinistra per visualizzare e modificare il suo percorso tecnico, esami e gare.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let tesserati = JSON.parse(localStorage.getItem('asd_soci')) || [];
+        let archivioCintureGare = JSON.parse(localStorage.getItem('asd_cinture_gare')) || {};
+
+        window.onload = () => {
+            inizializzaGraficaASD();
+            popolaSelectTesserati();
+        };
+
+        function inizializzaGraficaASD() {
+            const config = JSON.parse(localStorage.getItem('asd_config')) || JSON.parse(localStorage.getItem('config_asd')) || {};
+            const nomeAsd = config.nome || 'ASD IKSA';
+            document.getElementById('headerAsdName').innerText = `${nomeAsd} - Gestione Tecnica`;
+
+            const badge = document.getElementById('asdLogoBadge');
+            if (config.logo) {
+                badge.innerHTML = `<img src="${config.logo}" class="w-full h-full object-cover">`;
+                badge.classList.remove('bg-amber-500');
+            } else if (config.nome) {
+                const pulito = config.nome.replace(/asd/gi, '').trim();
+                badge.innerText = pulito.substring(0, 2).toUpperCase() || 'IK';
+            }
+        }
+
+        function popolaSelectTesserati() {
+            const select = document.getElementById('selectSocio');
+            const ordinati = [...tesserati].sort((a, b) => `${a.cognome} ${a.nome}`.localeCompare(`${b.cognome} ${b.nome}`));
+            
+            select.innerHTML = '<option value="">-- SELEZIONA UN TESSERATO --</option>' + ordinati.map(s => `
+                <option value="${s.id}">${s.cognome} ${s.nome} (${s.corso || 'GENERALE'})</option>
+            `).join('');
+        }
+
+        function caricaDatiTesseratoSelezionato() {
+            const socioId = document.getElementById('selectSocio').value;
+            const container = document.getElementById('dettaglioAtletaContainer');
+
+            if (!socioId) {
+                container.innerHTML = `
+                    <div class="text-center py-12 text-slate-400">
+                        <div class="text-5xl mb-3">🥋</div>
+                        <p class="font-bold uppercase text-xs tracking-widest">Seleziona un tesserato dal menu a tendina a sinistra per visualizzare e modificare il suo percorso tecnico, esami e gare.</p>
+                    </div>`;
+                return;
+            }
+
+            const socio = tesserati.find(s => String(s.id) === String(socioId));
+            const datiTecnici = archivioCintureGare[socioId] || { cintura: 'BIANCA', dataCintura: '', esami: [], gare: [] };
+
+            document.getElementById('cinturaColore').value = datiTecnici.cintura || 'BIANCA';
+            document.getElementById('cinturaData').value = datiTecnici.dataCintura || '';
+
+            renderizzaDettaglioAtletaVisuale(socio, datiTecnici);
+        }
+
+        function renderizzaDettaglioAtletaVisuale(socio, dati) {
+            const container = document.getElementById('dettaglioAtletaContainer');
+            
+            const listaEsamiHtml = dati.esami && dati.esami.length > 0 ? dati.esami.map((e, idx) => `
+                <div class="bg-slate-900/60 p-4 rounded-xl border border-white/5 flex justify-between items-center mb-2">
+                    <div>
+                        <h4 class="font-black text-purple-300 uppercase text-sm">${e.titolo}</h4>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Data: ${e.data ? e.data.split('-').reverse().join('/') : '---'} • Esito: ${e.note || '---'}</p>
+                    </div>
+                    <button onclick="eliminaElementoStorico('${socio.id}', 'esami', ${idx})" class="text-red-400 hover:text-red-300 text-xs px-3 py-1 bg-red-500/10 rounded-lg">Elimina</button>
+                </div>
+            `).join('') : '<p class="text-xs text-slate-500 italic">Nessun esame registrato nello storico.</p>';
+
+            const listaGareHtml = dati.gare && dati.gare.length > 0 ? dati.gare.map((g, idx) => `
+                <div class="bg-slate-900/60 p-4 rounded-xl border border-white/5 flex justify-between items-center mb-2">
+                    <div>
+                        <h4 class="font-black text-amber-400 uppercase text-sm">🏆 ${g.nome}</h4>
+                        <p class="text-[11px] text-slate-300 mt-0.5">Data: ${g.data ? g.data.split('-').reverse().join('/') : '---'} | Specialità: ${g.specialita || '---'} | Risultato: <strong class="text-amber-400">${g.risultato || 'Partecipazione'}</strong></p>
+                    </div>
+                    <button onclick="eliminaElementoStorico('${socio.id}', 'gare', ${idx})" class="text-red-400 hover:text-red-300 text-xs px-3 py-1 bg-red-500/10 rounded-lg">Elimina</button>
+                </div>
+            `).join('') : '<p class="text-xs text-slate-500 italic">Nessuna gara registrata nel palmares.</p>';
+
+            container.innerHTML = `
+                <div class="flex justify-between items-start mb-6 border-b border-white/10 pb-4">
+                    <div>
+                        <span class="text-[10px] font-black uppercase tracking-widest bg-amber-500/20 text-amber-300 px-3 py-1 rounded-full">Atleta Selezionato</span>
+                        <h3 class="text-2xl font-black uppercase italic mt-2 text-white">${socio.cognome} ${socio.nome}</h3>
+                        <p class="text-xs font-bold text-slate-400 uppercase mt-1">Disciplina: <span class="text-purple-300">${socio.corso || '---'}</span></p>
+                    </div>
+                    <div class="text-right bg-slate-900 px-4 py-3 rounded-2xl border border-amber-500/30">
+                        <span class="text-[10px] font-black text-slate-400 uppercase block">Cintura Attuale</span>
+                        <span class="text-lg font-black text-amber-400 uppercase italic">${dati.cintura || 'BIANCA'}</span>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <div>
+                        <h4 class="text-sm font-black uppercase tracking-wider text-purple-400 mb-3 flex items-center gap-2"><span>🎓</span> Storico Esami di Grado</h4>
+                        <div class="max-h-60 overflow-y-auto pr-1 space-y-2">${listaEsamiHtml}</div>
+                    </div>
+
+                    <div>
+                        <h4 class="text-sm font-black uppercase tracking-wider text-amber-400 mb-3 flex items-center gap-2"><span>🏆</span> Palmares Gare e Tornei</h4>
+                        <div class="max-h-60 overflow-y-auto pr-1 space-y-2">${listaGareHtml}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function aggiungiEsame() {
+            const socioId = document.getElementById('selectSocio').value;
+            if (!socioId) return alert("Seleziona prima un tesserato.");
+
+            const titolo = document.getElementById('esameTitolo').value.toUpperCase();
+            const data = document.getElementById('esameData').value;
+            const note = document.getElementById('esameNote').value.toUpperCase();
+
+            if (!titolo) return alert("Inserisci la descrizione dell'esame.");
+
+            if (!archivioCintureGare[socioId]) {
+                archivioCintureGare[socioId] = { cintura: document.getElementById('cinturaColore').value, dataCintura: document.getElementById('cinturaData').value, esami: [], gare: [] };
+            }
+
+            archivioCintureGare[socioId].esami.push({ titolo, data, note });
+            
+            // Pulisci i campi esame
+            document.getElementById('esameTitolo').value = '';
+            document.getElementById('esameData').value = '';
+            document.getElementById('esameNote').value = '';
+
+            salvaEAggiorna(socioId);
+        }
+
+        function aggiungiGara() {
+            const socioId = document.getElementById('selectSocio').value;
+            if (!socioId) return alert("Seleziona prima un tesserato.");
+
+            const nome = document.getElementById('garaNome').value.toUpperCase();
+            const data = document.getElementById('garaData').value;
+            const specialita = document.getElementById('garaSpecialita').value.toUpperCase();
+            const risultato = document.getElementById('garaRisultato').value.toUpperCase();
+
+            if (!nome) return alert("Inserisci il nome della gara.");
+
+            if (!archivioCintureGare[socioId]) {
+                archivioCintureGare[socioId] = { cintura: document.getElementById('cinturaColore').value, dataCintura: document.getElementById('cinturaData').value, esami: [], gare: [] };
+            }
+
+            archivioCintureGare[socioId].gare.push({ nome, data, specialita, risultato });
+
+            // Pulisci i campi gara
+            document.getElementById('garaNome').value = '';
+            document.getElementById('garaData').value = '';
+            document.getElementById('garaSpecialita').value = '';
+            document.getElementById('garaRisultato').value = '';
+
+            salvaEAggiorna(socioId);
+        }
+
+        function eliminaElementoStorico(socioId, tipo, indice) {
+            if (confirm("Vuoi eliminare questo elemento dallo storico?")) {
+                if (archivioCintureGare[socioId] && archivioCintureGare[socioId][tipo]) {
+                    archivioCintureGare[socioId][tipo].splice(indice, 1);
+                    salvaEAggiorna(socioId);
+                }
+            }
+        }
+
+        function salvaTuttoProfiloSportivo() {
+            const socioId = document.getElementById('selectSocio').value;
+            if (!socioId) return alert("Seleziona prima un tesserato dal menu a tendina.");
+
+            if (!archivioCintureGare[socioId]) {
+                archivioCintureGare[socioId] = { esami: [], gare: [] };
+            }
+
+            archivioCintureGare[socioId].cintura = document.getElementById('cinturaColore').value;
+            archivioCintureGare[socioId].dataCintura = document.getElementById('cinturaData').value;
+
+            salvaEAggiorna(socioId);
+            alert("Profilo sportivo salvato con successo!");
+        }
+
+        function salvaEAggiorna(socioId) {
+            localStorage.setItem('asd_cinture_gare', JSON.stringify(archivioCintureGare));
+            const socio = tesserati.find(s => String(s.id) === String(socioId));
+            renderizzaDettaglioAtletaVisuale(socio, archivioCintureGare[socioId]);
+        }
+
+        function filtraListaSchede() {
+            const query = document.getElementById('searchScheda').value.toUpperCase();
+            const select = document.getElementById('selectSocio');
+            
+            const filtrati = tesserati.filter(s => {
+                const nomeCompleto = `${s.cognome} ${s.nome}`.toUpperCase();
+                const dati = archivioCintureGare[s.id] || {};
+                const cintura = (dati.cintura || '').toUpperCase();
+                return nomeCompleto.includes(query) || cintura.includes(query) || (s.corso || '').toUpperCase().includes(query);
+            });
+
+            select.innerHTML = '<option value="">-- SELEZIONA UN TESSERATO --</option>' + filtrati.map(s => `
+                <option value="${s.id}">${s.cognome} ${s.nome} (${s.corso || 'GENERALE'})</option>
+            `).join('');
+        }
+    </script>
+</body>
+</html>

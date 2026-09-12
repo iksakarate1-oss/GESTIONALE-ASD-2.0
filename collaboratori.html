@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GESTIONE COLLABORATORI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { background: #0b1120; color: white; min-height: 100vh; font-family: 'Inter', sans-serif; }
+        .glass { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
+        
+        @media print {
+            body { background: white !important; color: black !important; padding: 0 !important; }
+            .no-print { display: none !important; }
+            .glass { background: none !important; border: none !important; color: black !important; backdrop-filter: none !important; }
+            .print-clean { border: 1px solid #ddd !important; border-radius: 8px !important; padding: 15px !important; color: black !important; }
+            table { width: 100% !important; border-collapse: collapse !important; color: black !important; }
+            th, td { border-bottom: 1px solid #ddd !important; padding: 8px !important; color: black !important; }
+            h1, h2, h3, p, span { color: black !important; }
+            .text-amber-400, .text-emerald-400, .text-slate-400, .text-slate-200, .text-cyan-400, .text-rose-400 { color: black !important; }
+            
+            .print-only-history { display: block !important; }
+        }
+    </style>
+</head>
+<body class="p-6 flex flex-col items-center" onload="init()">
+
+    <!-- Header di Navigazione -->
+    <div class="w-full max-w-6xl flex justify-between items-center mb-8 no-print">
+        <a href="index.html" class="glass px-6 py-3 rounded-xl text-amber-400 hover:bg-amber-400/10 text-xs font-bold uppercase tracking-wider transition">
+            ⬅️ Torna alla Dashboard
+        </a>
+        <div class="text-right">
+            <h1 id="header-nome-asd" class="text-3xl font-black italic tracking-tighter text-amber-400 uppercase">LA TUA ASD</h1>
+            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Divisione Quote 50% ASD • 50% Tecnico (Gestione Entrate/Uscite)</p>
+        </div>
+    </div>
+
+    <!-- Intestazione visibile SOLO durante la Stampa dell'Estratto Conto -->
+    <div class="hidden print:block w-full max-w-6xl mb-8 text-center border-b pb-4">
+        <h1 id="print-nome-asd" class="text-2xl font-bold uppercase">LA TUA ASD</h1>
+        <p class="text-sm text-gray-600">Rendiconto ripartizione quote societarie e costi associati</p>
+        <p class="text-xs text-gray-500 mt-1" id="print-date"></p>
+    </div>
+
+    <!-- KPI Dashboard interna -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl w-full mb-8" id="kpi-container">
+        <div class="glass print-clean p-6 rounded-2xl text-center">
+            <p class="text-xs font-bold text-slate-400 uppercase print:text-gray-600">Periodo Attivo Netto (Da Liquidare)</p>
+            <p id="kpi-totale" class="text-3xl font-black text-white print:text-black mt-1">€ 0.00</p>
+            <span id="kpi-totale-dettaglio" class="text-[10px] text-slate-500 font-mono"></span>
+        </div>
+        <div class="glass print-clean p-6 rounded-2xl text-center border-l-4 border-amber-500 print:border-l-2 print:border-gray-400">
+            <p class="text-xs font-bold text-amber-400 uppercase print:text-gray-600">Quota ASD Residua (50%)</p>
+            <p id="kpi-asd" class="text-3xl font-black text-amber-400 print:text-black mt-1">€ 0.00</p>
+            <span id="kpi-asd-dettaglio" class="text-[10px] text-slate-400 font-mono">Netto: €0.00 | Acconti: €0.00</span>
+        </div>
+        <div class="glass print-clean p-6 rounded-2xl text-center border-l-4 border-emerald-500 print:border-l-2 print:border-gray-400">
+            <p class="text-xs font-bold text-emerald-400 uppercase print:text-gray-600">Quota Tecnico Residua (50%)</p>
+            <p id="kpi-tecnici" class="text-3xl font-black text-emerald-400 print:text-black mt-1">€ 0.00</p>
+            <span id="kpi-tecnici-dettaglio" class="text-[10px] text-slate-400 font-mono">Netto: €0.00 | Acconti: €0.00</span>
+        </div>
+    </div>
+
+    <!-- Griglia Principale Moduli -->
+    <div id="main-grid" class="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full max-w-6xl mb-12">
+        
+        <!-- Controlli e Form di Registrazione -->
+        <div class="lg:col-span-4 space-y-6 no-print">
+            
+            <!-- Modulo 1: Cerca & Filtra -->
+            <div class="glass p-6 rounded-[2rem] border border-amber-500/20">
+                <h3 class="text-lg font-bold text-white mb-4 border-b border-white/10 pb-2 uppercase tracking-wide text-amber-400">Filtro Ricerca</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 mb-1 uppercase">Seleziona Disciplina o Tecnico</label>
+                        <input type="text" id="filtro-chiave" onkeyup="renderingQuote()" placeholder="Es. KARATE, ROSSI, JUDO..." class="w-full bg-slate-900 p-3 rounded-lg border border-white/10 text-white focus:border-amber-400 outline-none text-sm uppercase font-bold">
+                    </div>
+                    
+                    <button onclick="stampaEstrattoConto()" class="w-full bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold p-3 rounded-xl uppercase text-xs tracking-wider transition border border-amber-400/30 flex items-center justify-center gap-2">
+                        🖨️ Stampa Estratto Conto
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modulo 1.2: Registra Uscita / Costo per Attività (Richiesta) -->
+            <div class="glass p-6 rounded-[2rem] border border-rose-500/20">
+                <h3 class="text-lg font-bold text-white mb-4 border-b border-white/10 pb-2 uppercase tracking-wide text-rose-400">Registra Uscita / Spesa</h3>
+                <form id="form-uscita" onsubmit="aggiungiUscita(event)" class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 mb-1 uppercase">Causale / Descrizione</label>
+                        <input type="text" id="uscita-causale" required placeholder="Es. Carburante, Materiale..." class="w-full bg-slate-900 p-2.5 rounded-lg border border-white/10 text-white focus:border-rose-400 outline-none text-sm font-bold uppercase">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 mb-1 uppercase">Attività / Disciplina</label>
+                        <input type="text" id="uscita-attivita" required placeholder="Es. KARATE" class="w-full bg-slate-900 p-2.5 rounded-lg border border-white/10 text-white focus:border-rose-400 outline-none text-sm font-bold uppercase">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 mb-1 uppercase">Importo (€)</label>
+                        <input type="number" id="uscita-importo" step="0.01" min="0.01" required placeholder="100.00" class="w-full bg-slate-900 p-2.5 rounded-lg border border-white/10 text-white focus:border-rose-400 outline-none text-sm font-bold">
+                    </div>
+                    <button type="submit" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-black p-3 rounded-xl uppercase text-xs tracking-wider transition">
+                        ➖ Registra Uscita
+                    </button>
+                </form>
+            </div>
+
+            <!-- Modulo 1.5: Pannello Gestione Chiusure, Liquidazioni & Acconti -->
+            <div class="glass p-6 rounded-[2rem] border border-rose-500/30">
+                <h3 class="text-lg font-bold text-white mb-4 border-b border-white/10 pb-2 uppercase tracking-wide text-rose-400">Paga / Liquida / Acconto</h3>
+                
+                <div class="space-y-4">
+                    <!-- Sezione Acconti -->
+                    <div class="bg-slate-900/60 p-3.5 rounded-xl border border-white/5 space-y-2.5">
+                        <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider block">💸 Registra un Acconto</span>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] text-slate-400 uppercase mb-1">Destinatario</label>
+                                <select id="acconto-destinatario" class="w-full bg-slate-950 p-2 rounded border border-white/10 text-xs text-white">
+                                    <option value="TECNICO">TECNICO</option>
+                                    <option value="ASD">ASD</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-slate-400 uppercase mb-1">Metodo</label>
+                                <select id="acconto-metodo" class="w-full bg-slate-950 p-2 rounded border border-white/10 text-xs text-white">
+                                    <option value="CONTANTI">💵 CONTANTI</option>
+                                    <option value="BONIFICO">🏦 BONIFICO</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-slate-400 uppercase mb-1">Importo (€)</label>
+                            <input type="number" id="acconto-importo" step="0.01" min="0.01" placeholder="0.00" class="w-full bg-slate-950 p-2 rounded border border-white/10 text-xs text-white">
+                        </div>
+                        <button onclick="registraAcconto()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded text-xs uppercase tracking-wider transition">
+                            Conferma Acconto
+                        </button>
+                    </div>
+
+                    <!-- Sezione Liquidazione Periodo -->
+                    <div class="bg-slate-900/60 p-3.5 rounded-xl border border-white/5 space-y-2.5">
+                        <span class="text-xs font-bold text-rose-400 uppercase tracking-wider block">🔒 Chiudi / Liquida Periodo</span>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] text-slate-400 uppercase mb-1">Cosa liquidi?</label>
+                                <select id="liquida-tipo" class="w-full bg-slate-950 p-2 rounded border border-white/10 text-xs text-white">
+                                    <option value="ENTRAMBI">ENTRAMBI</option>
+                                    <option value="TECNICO">TECNICO (50%)</option>
+                                    <option value="ASD">ASD (50%)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-slate-400 uppercase mb-1">Metodo</label>
+                                <select id="liquida-metodo" class="w-full bg-slate-950 p-2 rounded border border-white/10 text-xs text-white">
+                                    <option value="CONTANTI">💵 CONTANTI</option>
+                                    <option value="BONIFICO">🏦 BONIFICO</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button onclick="effettuaChiusuraPeriodo()" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-black py-3 rounded-xl uppercase text-xs tracking-wider transition">
+                            Esegui Liquidazione
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modulo 2: Registra Nuovo Collaboratore -->
+            <div class="glass p-6 rounded-[2rem]">
+                <h3 class="text-lg font-bold text-white mb-4 border-b border-white/10 pb-2 uppercase tracking-wide text-emerald-400">Nuovo Collaboratore</h3>
+                <form id="form-collaboratore" onsubmit="aggiungiCollaboratore(event)" class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 mb-1 uppercase">Nome</label>
+                        <input type="text" id="coll-nome" required class="w-full bg-slate-900 p-2.5 rounded-lg border border-white/10 text-white focus:border-emerald-400 outline-none text-sm font-bold uppercase">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 mb-1 uppercase">Cognome</label>
+                        <input type="text" id="coll-cognome" required class="w-full bg-slate-900 p-2.5 rounded-lg border border-white/10 text-white focus:border-emerald-400 outline-none text-sm font-bold uppercase">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 mb-1 uppercase">Disciplina Associata</label>
+                        <input type="text" id="coll-disciplina" required placeholder="Es. KARATE, JUDO, YOGA" class="w-full bg-slate-900 p-2.5 rounded-lg border border-white/10 text-white focus:border-emerald-400 outline-none text-sm font-bold uppercase">
+                    </div>
+                    <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-900 font-black p-3 rounded-xl uppercase text-xs tracking-wider transition">
+                        ➕ Registra Tecnico
+                    </button>
+                </form>
+            </div>
+
+            <!-- Modulo 3: Elenco Collaboratori Registrati -->
+            <div class="glass p-6 rounded-[2rem]">
+                <h3 class="text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">Anagrafica & Azioni Rapide</h3>
+                <div id="lista-collaboratori" class="space-y-3 max-h-64 overflow-y-auto pr-1">
+                    <!-- Popolato via JS -->
+                </div>
+            </div>
+
+            <!-- Modulo 4: Storico Chiusure -->
+            <div class="glass p-6 rounded-[2rem] border border-cyan-500/20">
+                <div class="flex justify-between items-center mb-3 border-b border-white/10 pb-2">
+                    <h3 class="text-sm font-black text-cyan-400 uppercase tracking-wider">📜 Storico</h3>
+                    <button onclick="apriModalStorico()" class="bg-cyan-500/10 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-400 px-2 py-1 rounded-lg text-[10px] font-bold uppercase transition">
+                        🔍 Espandi & Stampa
+                    </button>
+                </div>
+                <div id="lista-chiusure" class="space-y-2 max-h-56 overflow-y-auto pr-1 text-xs">
+                    <!-- Popolato via JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Registro delle Quote Divise Importate -->
+        <div class="lg:col-span-8 space-y-6">
+            <div class="glass print-clean p-6 rounded-[2rem] flex flex-col">
+                <div class="flex justify-between items-center mb-4 border-b border-white/10 pb-2 no-print">
+                    <h3 class="text-lg font-bold text-white uppercase tracking-wide print:text-black">Dettaglio Movimenti, Uscite & Ripartizione</h3>
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="mostra-archiviati" onchange="renderingQuote()" class="w-4 h-4 rounded bg-slate-950 border-white/10 text-amber-500 focus:ring-0 cursor-pointer">
+                        <label for="mostra-archiviati" class="text-xs text-slate-400 uppercase font-bold cursor-pointer">Mostra Già Liquidati</label>
+                    </div>
+                </div>
+                <h3 class="hidden print:block text-lg font-bold text-black mb-4 border-b pb-2">Dettaglio Movimenti, Uscite & Ripartizione</h3>
+                <div class="overflow-x-auto flex-1">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="border-b border-white/10 text-slate-400 text-xs uppercase print:border-gray-400 print:text-black">
+                                <th class="py-3 px-2">Data</th>
+                                <th class="py-3 px-2">Tipo / Soggetto / Attività</th>
+                                <th class="py-3 px-2 text-right">Importo</th>
+                                <th class="py-3 px-2 text-right text-amber-400 print:text-black">ASD (50%)</th>
+                                <th class="py-3 px-2 text-right text-emerald-400 print:text-black">Tecnico (50%)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabella-quote">
+                            <!-- Popolato via Javascript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MODALE FULLSCREEN STORICO -->
+    <div id="modal-storico" class="fixed inset-0 bg-[#070b13]/98 backdrop-blur-md z-50 hidden flex flex-col items-center p-6 overflow-y-auto no-print">
+        <div class="w-full max-w-4xl flex justify-between items-center mb-6 pb-4 border-b border-white/10">
+            <div>
+                <h2 class="text-2xl font-black tracking-tight text-cyan-400 uppercase">Storico Completo Operazioni</h2>
+                <p class="text-slate-400 text-xs">Registro cronologico di tutte le liquidazioni, acconti e metodi di pagamento.</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="stampaSoloStorico()" class="bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold px-4 py-2.5 rounded-xl text-xs uppercase tracking-wider transition">
+                    🖨️ Stampa Storico
+                </button>
+                <button onclick="chiudiModalStorico()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-4 py-2.5 rounded-xl text-xs uppercase tracking-wider transition">
+                    ✕ Chiudi
+                </button>
+            </div>
+        </div>
+        
+        <div class="w-full max-w-4xl space-y-3" id="contenuto-storico-modal">
+            <!-- Riempito via JS -->
+        </div>
+    </div>
+
+    <!-- AREA STAMPA 1: BLOCCO STORICO GENERALE -->
+    <div id="print-area-storico" class="hidden w-full max-w-4xl p-6">
+        <div class="text-center mb-8 border-b pb-4">
+            <h1 id="print-storico-asd" class="text-2xl font-bold uppercase">LA TUA ASD</h1>
+            <p class="text-sm text-gray-600">REGISTRO STORICO DELLE TRANSAZIONI, LIQUIDAZIONI E ACCONTI</p>
+            <p class="text-xs text-gray-500 mt-1" id="print-storico-date"></p>
+        </div>
+        <table class="w-full text-left border-collapse text-xs">
+            <thead>
+                <tr class="border-b-2 border-black">
+                    <th class="py-2">Data / Ora</th>
+                    <th class="py-2">Num. Ric.</th>
+                    <th class="py-2">Operazione</th>
+                    <th class="py-2">Destinatario / Ambito</th>
+                    <th class="py-2">Metodo Pag.</th>
+                    <th class="py-2 text-right">Importo</th>
+                </tr>
+            </thead>
+            <tbody id="print-storico-table-body">
+                <!-- Popolato via JS -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- AREA STAMPA 2: RICEVUTA SINGOLA -->
+    <div id="print-area-ricevuta" class="hidden w-full max-w-2xl mx-auto p-8 border-2 border-black rounded-lg bg-white text-black text-sm">
+        <div class="text-center mb-6 pb-4 border-b-2 border-dashed border-gray-400">
+            <h1 id="ricevuta-nome-asd" class="text-2xl font-extrabold uppercase tracking-tight">NOME ASD</h1>
+            <p class="text-xs uppercase text-gray-600 font-bold tracking-widest">Ricevuta di pagamento Interno / Collaboratori</p>
+        </div>
+
+        <div class="flex justify-between items-center mb-6 font-mono text-xs text-gray-600">
+            <div>RICEVUTA N. <span id="ricevuta-numero" class="font-bold text-black text-base">--</span></div>
+            <div>Data Emissione: <span id="ricevuta-data" class="font-bold text-black">--</span></div>
+        </div>
+
+        <div class="space-y-4 mb-8">
+            <div class="grid grid-cols-3 border-b pb-2">
+                <span class="text-gray-500 font-bold uppercase text-xs">Beneficiario / Dest.:</span>
+                <span id="ricevuta-destinatario" class="col-span-2 font-bold text-base uppercase">--</span>
+            </div>
+            <div class="grid grid-cols-3 border-b pb-2">
+                <span class="text-gray-500 font-bold uppercase text-xs">Tipo Operazione:</span>
+                <span id="ricevuta-tipo-op" class="col-span-2 font-bold uppercase text-red-700">--</span>
+            </div>
+            <div class="grid grid-cols-3 border-b pb-2">
+                <span class="text-gray-500 font-bold uppercase text-xs">Riferimento / Filtro:</span>
+                <span id="ricevuta-riferimento" class="col-span-2 uppercase">--</span>
+            </div>
+            <div class="grid grid-cols-3 border-b pb-2">
+                <span class="text-gray-500 font-bold uppercase text-xs">Metodo di Pagamento:</span>
+                <span id="ricevuta-metodo" class="col-span-2 font-bold uppercase">--</span>
+            </div>
+        </div>
+
+        <!-- Box Importo Ricevuta -->
+        <div class="bg-gray-100 p-4 rounded-lg text-center border border-gray-300 mb-8">
+            <span class="text-xs text-gray-500 font-bold uppercase tracking-wider block">Somma Erogata ed Ricevuta</span>
+            <span id="ricevuta-importo" class="text-3xl font-black">€ 0.00</span>
+        </div>
+
+        <div class="text-[10px] text-gray-500 italic mb-8 leading-relaxed">
+            La presente somma è corrisposta a titolo di saldo/acconto per attività svolte a favore della suddetta associazione sportiva dilettantistica.<br>
+            * Esente da IVA ai sensi delle vigenti disposizioni di legge per le associazioni sportive dilettantistiche. Marca da bollo da €2,00 applicata sull'originale se l'importo supera €77,47.
+        </div>
+
+        <!-- Firme -->
+        <div class="grid grid-cols-2 gap-8 pt-8 border-t border-dashed border-gray-400 text-center">
+            <div>
+                <p class="text-[10px] uppercase text-gray-500 font-bold mb-10">Firma del Ricevente (Collaboratore)</p>
+                <div class="border-b border-black w-4/5 mx-auto"></div>
+            </div>
+            <div>
+                <p class="text-[10px] uppercase text-gray-500 font-bold mb-10">Firma del Presidente / Tesoriere ASD</p>
+                <div class="border-b border-black w-4/5 mx-auto"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let pagamenti = [];
+        let collaboratori = [];
+        let chiusure = [];
+        let infoAsd = {};
+
+        function init() {
+            caricaDati();
+            applicaNomeAsd();
+            renderingCollaboratori();
+            renderingChiusures();
+            renderingQuote();
+        }
+
+        function caricaDati() {
+            pagamenti = JSON.parse(localStorage.getItem('asd_pagamenti')) || [];
+            collaboratori = JSON.parse(localStorage.getItem('asd_collaboratori')) || [];
+            infoAsd = JSON.parse(localStorage.getItem('asd_info')) || {};
+            chiusure = JSON.parse(localStorage.getItem('asd_chiusure_collaboratori')) || [];
+        }
+
+        function applicaNomeAsd() {
+            const nomeAsd = infoAsd.nome || localStorage.getItem('asd_nome_config') || "LA TUA ASD";
+            document.getElementById('header-nome-asd').innerText = nomeAsd;
+            document.getElementById('print-nome-asd').innerText = nomeAsd;
+            document.getElementById('print-storico-asd').innerText = nomeAsd;
+            document.getElementById('ricevuta-nome-asd').innerText = nomeAsd;
+            document.title = `${nomeAsd} - GESTIONE COLLABORATORI`;
+        }
+
+        // --- GESTIONE USCITE / SPESE ASSOCIATE AD ATTIVITA' ---
+        function aggiungiUscita(e) {
+            e.preventDefault();
+            const causale = document.getElementById('uscita-causale').value.trim().toUpperCase();
+            const attivita = document.getElementById('uscita-attivita').value.trim().toUpperCase();
+            const importo = parseFloat(document.getElementById('uscita-importo').value) || 0;
+
+            if (importo <= 0) {
+                alert("Inserisci un importo valido per l'uscita.");
+                return;
+            }
+
+            const nuovaUscita = {
+                id: 'uscita_' + Date.now(),
+                data: new Date().toISOString(),
+                tipo: 'USCITA',
+                causale: causale,
+                attivita: attivita,
+                importo: importo
+            };
+
+            pagamenti.push(nuovaUscita);
+            localStorage.setItem('asd_pagamenti', JSON.stringify(pagamenti));
+
+            document.getElementById('form-uscita').reset();
+            renderingQuote();
+            alert("Uscita registrata con successo!");
+        }
+
+        function cancellaMovimento(id) {
+            if (confirm("Vuoi eliminare questa voce (entrata/uscita)?")) {
+                pagamenti = pagamenti.filter(p => p.id !== id);
+                localStorage.setItem('asd_pagamenti', JSON.stringify(pagamenti));
+                renderingQuote();
+            }
+        }
+
+        // --- CALCOLO NUMERO PROGRESSIVO PULITO ---
+        function generaNumeroRicevuta(operazione) {
+            const annoOp = new Date(operazione.dataChiusura).getFullYear();
+            
+            const storiciAnno = chiusure
+                .filter(c => new Date(c.dataChiusura).getFullYear() === annoOp)
+                .sort((a, b) => a.id - b.id);
+
+            const indice = storiciAnno.findIndex(c => c.id === operazione.id);
+            const progressivo = indice !== -1 ? (indice + 1) : (storiciAnno.length + 1);
+
+            return `${progressivo}/${annoOp}`;
+        }
+
+        // --- GESTIONE COLLABORATORI ---
+        function aggiungiCollaboratore(e) {
+            e.preventDefault();
+            const nome = document.getElementById('coll-nome').value.trim().toUpperCase();
+            const cognome = document.getElementById('coll-cognome').value.trim().toUpperCase();
+            const disciplina = document.getElementById('coll-disciplina').value.trim().toUpperCase();
+
+            const nuovo = { id: Date.now(), nome, cognome, disciplina };
+            collaboratori.push(nuovo);
+            localStorage.setItem('asd_collaboratori', JSON.stringify(collaboratori));
+            
+            document.getElementById('form-collaboratore').reset();
+            renderingCollaboratori();
+        }
+
+        function cancellaCollaboratore(id) {
+            if (confirm("Rimuovere questo collaboratore?")) {
+                collaboratori = collaboratori.filter(c => c.id !== id);
+                localStorage.setItem('asd_collaboratori', JSON.stringify(collaboratori));
+                renderingCollaboratori();
+            }
+        }
+
+        function impostaFiltro(valore) {
+            document.getElementById('filtro-chiave').value = valore;
+            renderingQuote();
+        }
+
+        // --- AZIONI LIQUIDA / ACCONTO MIRATI ---
+        function azioneRapidaLiquida(nomeTecnico, disciplina) {
+            document.getElementById('filtro-chiave').value = disciplina;
+            renderingQuote();
+
+            const importoTecnicoResiduo = parseFloat(document.getElementById('kpi-tecnici').innerText.replace('€', '').trim()) || 0;
+
+            if (importoTecnicoResiduo <= 0) {
+                alert(`Nessun importo residuo da liquidare per il tecnico ${nomeTecnico} sulla disciplina [${disciplina}].`);
+                return;
+            }
+
+            const metodo = document.getElementById('liquida-metodo').value;
+            const conferma = confirm(`Stai liquidando SOLO il tecnico:\n\n👤 ${nomeTecnico}\n🥋 Disciplina: ${disciplina}\n💰 Quota Netta Spettante: € ${importoTecnicoResiduo.toFixed(2)}\n💳 Metodo: [${metodo}]\n\nConfermi l'operazione?`);
+            
+            if (conferma) {
+                const timestampSbarramento = Date.now();
+                const nuovaChiusura = {
+                    id: timestampSbarramento,
+                    dataChiusura: new Date().toISOString(),
+                    timestampLimite: timestampSbarramento,
+                    tipoOperazione: 'LIQUIDAZIONE',
+                    tipoLiquidazione: 'TECNICO', 
+                    metodoPagamento: metodo,
+                    filtro: disciplina,
+                    totaleLiquidato: importoTecnicoResiduo
+                };
+
+                chiusure.push(nuovaChiusura);
+                localStorage.setItem('asd_chiusure_collaboratori', JSON.stringify(chiusure));
+
+                alert(`Liquidazione completata con successo per ${nomeTecnico}!`);
+                caricaDati();
+                renderingChiusures();
+                renderingQuote();
+            }
+        }
+
+        function azioneRapidaAcconto(nomeTecnico, disciplina) {
+            document.getElementById('filtro-chiave').value = disciplina;
+            renderingQuote();
+
+            const cifraAcconto = prompt(`Inserisci l'importo dell'ACCONTO da erogare a ${nomeTecnico} (Filtro: ${disciplina}):`, "0.00");
+            const importo = parseFloat(cifraAcconto) || 0;
+
+            if (importo <= 0) {
+                if (cifraAcconto !== null) alert("Inserisci un importo valido superiore a 0!");
+                return;
+            }
+
+            const metodo = document.getElementById('acconto-metodo').value;
+            const conferma = confirm(`Confermi la registrazione dell'acconto di € ${importo.toFixed(2)} tramite [${metodo}] a favore di:\n👤 ${nomeTecnico} [${disciplina}]?`);
+            
+            if (conferma) {
+                const nuovoAcconto = {
+                    id: Date.now(),
+                    dataChiusura: new Date().toISOString(),
+                    tipoOperazione: 'ACCONTO',
+                    destinatario: 'TECNICO', 
+                    metodoPagamento: metodo,
+                    filtro: disciplina,
+                    importo: importo
+                };
+
+                chiusure.push(nuovoAcconto);
+                localStorage.setItem('asd_chiusure_collaboratori', JSON.stringify(chiusure));
+                
+                alert(`Acconto registrato per ${nomeTecnico}!`);
+                caricaDati();
+                renderingChiusures();
+                renderingQuote();
+            }
+        }
+
+        function renderingCollaboratori() {
+            const container = document.getElementById('lista-collaboratori');
+            container.innerHTML = '';
+
+            if (collaboratori.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-500 italic">Nessun collaboratore salvato</p>`;
+                return;
+            }
+
+            collaboratori.forEach(c => {
+                const nomeCompleto = `${c.nome} ${c.cognome}`;
+                container.innerHTML += `
+                    <div class="bg-slate-900/70 p-3 rounded-xl border border-white/5 hover:border-amber-500/20 transition group space-y-2">
+                        <div class="flex items-center justify-between">
+                            <button onclick="impostaFiltro('${c.disciplina}')" class="text-xs text-slate-200 hover:text-amber-400 font-bold uppercase transition text-left">
+                                🧑‍🏫 ${nomeCompleto} 
+                                <span class="block text-[10px] text-slate-500 font-normal">[${c.disciplina}]</span>
+                            </button>
+                            <button onclick="cancellaCollaboratore(${c.id})" class="text-slate-500 hover:text-red-400 text-xs px-1.5 opacity-0 group-hover:opacity-100 transition">
+                                ✕
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-2 gap-1.5 pt-1 border-t border-white/5">
+                            <button onclick="azioneRapidaAcconto('${nomeCompleto}', '${c.disciplina}')" class="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-[10px] py-1 font-bold rounded border border-emerald-500/20 uppercase transition">
+                                💸 + Acconto
+                            </button>
+                            <button onclick="azioneRapidaLiquida('${nomeCompleto}', '${c.disciplina}')" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-[10px] py-1 font-bold rounded border border-rose-500/20 uppercase transition">
+                                🔒 Liquida
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // --- SISTEMA DI ACCONTI ---
+        function registraAcconto() {
+            const filtro = document.getElementById('filtro-chiave').value.toUpperCase().trim();
+            const destinatario = document.getElementById('acconto-destinatario').value;
+            const metodo = document.getElementById('acconto-metodo').value;
+            const importo = parseFloat(document.getElementById('acconto-importo').value) || 0;
+
+            if (!filtro) {
+                alert("Seleziona prima un Tecnico o una Disciplina nel campo 'Filtro Ricerca' per associare correttamente l'acconto!");
+                return;
+            }
+            if (importo <= 0) {
+                alert("Inserisci un importo di acconto valido!");
+                return;
+            }
+
+            const conferma = confirm(`Registrare un acconto di € ${importo.toFixed(2)} tramite [${metodo}] a favore di: ${destinatario} per la ricerca "${filtro}"?`);
+            if (conferma) {
+                const nuovoAcconto = {
+                    id: Date.now(),
+                    dataChiusura: new Date().toISOString(),
+                    tipoOperazione: 'ACCONTO',
+                    destinatario: destinatario, 
+                    metodoPagamento: metodo,
+                    filtro: filtro,
+                    importo: importo
+                };
+
+                chiusure.push(nuovoAcconto);
+                localStorage.setItem('asd_chiusure_collaboratori', JSON.stringify(chiusure));
+                document.getElementById('acconto-importo').value = '';
+                
+                alert("Acconto registrato ed applicato con successo!");
+                caricaDati();
+                renderingChiusures();
+                renderingQuote();
+            }
+        }
+
+        // --- SISTEMA DI LIQUIDAZIONE ---
+        function effettuaChiusuraPeriodo() {
+            const filtro = document.getElementById('filtro-chiave').value.toUpperCase().trim();
+            const tipoLiquidazione = document.getElementById('liquida-tipo').value; 
+            const metodo = document.getElementById('liquida-metodo').value;
+            
+            const importoTecnicoResiduo = parseFloat(document.getElementById('kpi-tecnici').innerText.replace('€', '').trim()) || 0;
+            const importoAsdResiduo = parseFloat(document.getElementById('kpi-asd').innerText.replace('€', '').trim()) || 0;
+
+            let totaleDaLiquidare = 0;
+            if (tipoLiquidazione === 'ENTRAMBI') totaleDaLiquidare = importoTecnicoResiduo + importoAsdResiduo;
+            else if (tipoLiquidazione === 'TECNICO') totaleDaLiquidare = importoTecnicoResiduo;
+            else if (tipoLiquidazione === 'ASD') totaleDaLiquidare = importoAsdResiduo;
+
+            if (totaleDaLiquidare <= 0) {
+                alert("Nessun importo netto residuo da liquidare per l'opzione selezionata!");
+                return;
+            }
+
+            const ambitoChiusura = filtro ? `per "${filtro}"` : "globale";
+            const conferma = confirm(`Stai liquidando la quota [${tipoLiquidazione}] tramite [${metodo}] ${ambitoChiusura}.\n\nImporto netto erogato: € ${totaleDaLiquidare.toFixed(2)}\n\nConfermi l'azzeramento della quota indicata?`);
+
+            if (conferma) {
+                const timestampSbarramento = Date.now();
+
+                const nuovaChiusura = {
+                    id: timestampSbarramento,
+                    dataChiusura: new Date().toISOString(),
+                    timestampLimite: timestampSbarramento,
+                    tipoOperazione: 'LIQUIDAZIONE',
+                    tipoLiquidazione: tipoLiquidazione, 
+                    metodoPagamento: metodo,
+                    filtro: filtro,
+                    totaleLiquidato: totaleDaLiquidare
+                };
+
+                chiusure.push(nuovaChiusura);
+                localStorage.setItem('asd_chiusure_collaboratori', JSON.stringify(chiusure));
+
+                alert(`Liquidazione di tipo [${tipoLiquidazione}] con metodo [${metodo}] completata!`);
+                caricaDati();
+                renderingChiusures();
+                renderingQuote();
+            }
+        }
+
+        function isQuotaGiaLiquidata(p, quotaTipo) {
+            if (chiusure.length === 0) return false;
+
+            const transazioneId = parseInt(p.id) || new Date(p.data).getTime();
+
+            return chiusure.some(c => {
+                if (c.tipoOperazione !== 'LIQUIDAZIONE') return false; 
+                
+                const limite = c.timestampLimite || new Date(c.dataChiusura).getTime();
+                
+                if (transazioneId <= limite) {
+                    const copreQuestaQuota = (c.tipoLiquidazione === 'ENTRAMBI' || c.tipoLiquidazione === quotaTipo);
+
+                    if (copreQuestaQuota) {
+                        if (!c.filtro) return true;
+
+                        const filtro = c.filtro.toUpperCase().trim();
+                        const nomeSoggetto = (p.nome || "").toUpperCase();
+                        const attivita = (p.attivita || "").toUpperCase();
+                        const causale = (p.causale || "").toUpperCase();
+
+                        return nomeSoggetto.includes(filtro) || 
+                               attivita.includes(filtro) || 
+                               causale.includes(filtro);
+                    }
+                }
+                return false;
+            });
+        }
+
+        function cancellaChiusura(id) {
+            if (confirm("Vuoi eliminare questa operazione dallo storico? Verrà ricalcolata nei contatori attivi.")) {
+                chiusure = chiusure.filter(c => c.id !== id);
+                localStorage.setItem('asd_chiusure_collaboratori', JSON.stringify(chiusure));
+                caricaDati();
+                renderingChiusures();
+                renderingQuote();
+                
+                if (!document.getElementById('modal-storico').classList.contains('hidden')) {
+                    popolaModalStorico();
+                }
+            }
+        }
+
+        // --- STAMPA RICEVUTA CON NUMERO PULITO ---
+        function stampaRicevutaSingola(id) {
+            const op = chiusure.find(c => c.id === id);
+            if (!op) {
+                alert("Operazione non trovata!");
+                return;
+            }
+
+            const d = new Date(op.dataChiusura);
+            const dataFormattata = d.toLocaleDateString('it-IT') + ' ' + d.toLocaleTimeString('it-IT', {hour: '2-digit', minute:'2-digit'});
+            
+            document.getElementById('ricevuta-numero').innerText = generaNumeroRicevuta(op);
+            document.getElementById('ricevuta-data').innerText = dataFormattata;
+            document.getElementById('ricevuta-riferimento').innerText = op.filtro ? op.filtro : "COMPLESSIVO GENERALE";
+            document.getElementById('ricevuta-metodo').innerText = op.metodoPagamento || "CONTANTI";
+
+            if (op.tipoOperazione === 'ACCONTO') {
+                document.getElementById('ricevuta-destinatario').innerText = op.destinatario;
+                document.getElementById('ricevuta-tipo-op').innerText = "ACCONTO EROGATO";
+                document.getElementById('ricevuta-importo').innerText = `€ ${op.importo.toFixed(2)}`;
+            } else {
+                document.getElementById('ricevuta-destinatario').innerText = op.tipoLiquidazione;
+                document.getElementById('ricevuta-tipo-op').innerText = `LIQUIDAZIONE PERIODO (${op.tipoLiquidazione})`;
+                document.getElementById('ricevuta-importo').innerText = `€ ${op.totaleLiquidato.toFixed(2)}`;
+            }
+
+            document.getElementById('kpi-container').classList.add('no-print');
+            document.getElementById('main-grid').classList.add('no-print');
+            
+            const printArea = document.getElementById('print-area-ricevuta');
+            printArea.classList.remove('hidden');
+
+            window.print();
+
+            document.getElementById('kpi-container').classList.remove('no-print');
+            document.getElementById('main-grid').classList.remove('no-print');
+            printArea.classList.add('hidden');
+        }
+
+        function renderingChiusures() {
+            const container = document.getElementById('lista-chiusure');
+            container.innerHTML = '';
+
+            if (chiusure.length === 0) {
+                container.innerHTML = `<p class="text-slate-500 italic text-[11px]">Nessun movimento registrato nello storico</p>`;
+                return;
+            }
+
+            const ultimiChiusure = [...chiusure].reverse().slice(0, 15);
+
+            ultimiChiusure.forEach(c => {
+                const d = new Date(c.dataChiusura);
+                const dataFormattata = d.toLocaleDateString('it-IT');
+                const etichettaFiltro = c.filtro ? `Filtro: ${c.filtro}` : "Globale";
+                const metodo = c.metodoPagamento || "CONTANTI";
+                const iconaMetodo = metodo === "BONIFICO" ? "🏦" : "💵";
+                const progressivoPezzo = generaNumeroRicevuta(c);
+
+                if (c.tipoOperazione === 'ACCONTO') {
+                    container.innerHTML += `
+                        <div class="bg-emerald-950/40 p-2.5 rounded-lg border border-emerald-500/20 flex flex-col justify-between hover:border-emerald-500/40 transition group">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="font-bold text-slate-200 block text-[11px]">${dataFormattata}</span>
+                                        <span class="text-[9px] text-emerald-400 font-mono font-bold">#${progressivoPezzo}</span>
+                                    </div>
+                                    <span class="text-[9px] bg-emerald-800/60 text-emerald-300 px-1 rounded uppercase mr-1">ACCONTO</span>
+                                    <span class="text-[10px] text-slate-400 uppercase">[${etichettaFiltro}]</span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <button onclick="stampaRicevutaSingola(${c.id})" title="Stampa Ricevuta" class="text-emerald-400 hover:text-emerald-300 text-xs">
+                                        🧾
+                                    </button>
+                                    <button onclick="cancellaChiusura(${c.id})" class="text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition text-sm px-1">
+                                        ✕
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center mt-1 border-t border-white/5 pt-1 font-mono text-[11px]">
+                                <span class="text-slate-400">Dest: ${c.destinatario} (${iconaMetodo})</span>
+                                <span class="text-emerald-400 font-bold">- €${c.importo.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML += `
+                        <div class="bg-slate-900/80 p-2.5 rounded-lg border border-white/5 flex flex-col justify-between hover:border-cyan-500/20 transition group">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="font-bold text-slate-200 block text-[11px]">${dataFormattata}</span>
+                                        <span class="text-[9px] text-cyan-400 font-mono font-bold">#${progressivoPezzo}</span>
+                                    </div>
+                                    <span class="text-[9px] bg-rose-950/60 text-rose-300 px-1 rounded uppercase mr-1">LIQUIDAZIONE</span>
+                                    <span class="text-[10px] text-slate-400 uppercase">[${c.tipoLiquidazione}]</span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <button onclick="stampaRicevutaSingola(${c.id})" title="Stampa Ricevuta" class="text-rose-400 hover:text-rose-300 text-xs">
+                                        🧾
+                                    </button>
+                                    <button onclick="cancellaChiusura(${c.id})" class="text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition text-sm px-1">
+                                        ✕
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center mt-1 border-t border-white/5 pt-1 font-mono text-[11px]">
+                                <span class="text-slate-400">${etichettaFiltro} (${iconaMetodo})</span>
+                                <span class="text-rose-400 font-bold">€${c.totaleLiquidato.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+        }
+
+        function apriModalStorico() {
+            document.getElementById('modal-storico').classList.remove('hidden');
+            popolaModalStorico();
+        }
+
+        function chiudiModalStorico() {
+            document.getElementById('modal-storico').classList.add('hidden');
+        }
+
+        function popolaModalStorico() {
+            const container = document.getElementById('contenuto-storico-modal');
+            container.innerHTML = '';
+
+            if (chiusure.length === 0) {
+                container.innerHTML = `<div class="text-center py-12 text-slate-500 italic">Nessuna operazione registrata nello storico</div>`;
+                return;
+            }
+
+            [...chiusure].reverse().forEach(c => {
+                const d = new Date(c.dataChiusura);
+                const dataFormattata = d.toLocaleDateString('it-IT') + ' ' + d.toLocaleTimeString('it-IT', {hour: '2-digit', minute:'2-digit'});
+                const etichettaFiltro = c.filtro ? `Filtro Ricerca: ${c.filtro}` : "Applicazione Globale";
+                const metodo = c.metodoPagamento || "CONTANTI";
+                const iconaMetodo = metodo === "BONIFICO" ? "🏦" : "💵";
+                const progressivoPezzo = generaNumeroRicevuta(c);
+
+                if (c.tipoOperazione === 'ACCONTO') {
+                    container.innerHTML += `
+                        <div class="glass p-4 rounded-xl border border-emerald-500/30 flex items-center justify-between hover:bg-emerald-950/10 transition group">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center text-xl text-emerald-400">
+                                    💸
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-bold text-slate-100">${dataFormattata}</span>
+                                        <span class="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full uppercase">ACCONTO REGISTRATO (Ricevuta: #${progressivoPezzo})</span>
+                                    </div>
+                                    <p class="text-xs text-slate-400 mt-1">
+                                        Destinatario: <strong class="text-white">${c.destinatario}</strong> | Metodo: <strong class="text-white">${metodo} ${iconaMetodo}</strong>
+                                    </p>
+                                    <p class="text-[11px] text-slate-500 italic font-mono mt-0.5">${etichettaFiltro}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl font-bold text-emerald-400 font-mono">- €${c.importo.toFixed(2)}</span>
+                                <div class="flex items-center gap-2">
+                                    <button onclick="stampaRicevutaSingola(${c.id})" class="bg-emerald-500/10 hover:bg-emerald-500/30 text-emerald-400 font-bold px-3 py-1.5 rounded-lg text-xs uppercase transition" title="Crea Ricevuta">
+                                        🧾 Ricevuta
+                                    </button>
+                                    <button onclick="cancellaChiusura(${c.id})" class="text-slate-500 hover:text-red-400 transition font-black text-sm p-1 ml-2">
+                                        ✕
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML += `
+                        <div class="glass p-4 rounded-xl border border-rose-500/30 flex items-center justify-between hover:bg-rose-950/10 transition group">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-full bg-rose-500/20 flex items-center justify-center text-xl text-rose-400">
+                                    🔒
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-bold text-slate-100">${dataFormattata}</span>
+                                        <span class="text-[10px] bg-rose-500/20 text-rose-300 font-bold px-2 py-0.5 rounded-full uppercase">LIQUIDAZIONE PERIODO (Ricevuta: #${progressivoPezzo})</span>
+                                    </div>
+                                    <p class="text-xs text-slate-400 mt-1">
+                                        Quota Liquidata: <strong class="text-white">${c.tipoLiquidazione}</strong> | Metodo: <strong class="text-white">${metodo} ${iconaMetodo}</strong>
+                                    </p>
+                                    <p class="text-[11px] text-slate-500 italic font-mono mt-0.5">${etichettaFiltro}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl font-bold text-rose-400 font-mono">€${c.totaleLiquidato.toFixed(2)}</span>
+                                <div class="flex items-center gap-2">
+                                    <button onclick="stampaRicevutaSingola(${c.id})" class="bg-rose-500/10 hover:bg-rose-500/30 text-rose-400 font-bold px-3 py-1.5 rounded-lg text-xs uppercase transition" title="Crea Ricevuta">
+                                        🧾 Ricevuta
+                                    </button>
+                                    <button onclick="cancellaChiusura(${c.id})" class="text-slate-500 hover:text-red-400 transition font-black text-sm p-1 ml-2">
+                                        ✕
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+        }
+
+        function stampaSoloStorico() {
+            const printBody = document.getElementById('print-storico-table-body');
+            printBody.innerHTML = '';
+
+            if (chiusure.length === 0) {
+                printBody.innerHTML = `<tr><td colspan="6" class="text-center py-6">Nessun movimento registrato nello storico.</td></tr>`;
+            } else {
+                [...chiusure].reverse().forEach(c => {
+                    const d = new Date(c.dataChiusura);
+                    const dataFormattata = d.toLocaleDateString('it-IT') + ' ' + d.toLocaleTimeString('it-IT', {hour: '2-digit', minute:'2-digit'});
+                    const etichettaFiltro = c.filtro ? c.filtro : "COMPLESSIVO";
+                    const metodo = c.metodoPagamento || "CONTANTI";
+                    const progressivoPezzo = generaNumeroRicevuta(c);
+                    
+                    let nomeOp = "";
+                    let dettagliDest = "";
+                    let importoFormat = "";
+
+                    if (c.tipoOperazione === 'ACCONTO') {
+                        nomeOp = "ACCONTO EROGATO";
+                        dettagliDest = `A FAVORE DI: ${c.destinatario} [${etichettaFiltro}]`;
+                        importoFormat = `- € ${c.importo.toFixed(2)}`;
+                    } else {
+                        nomeOp = `LIQUIDAZIONE (${c.tipoLiquidazione})`;
+                        dettagliDest = `AMBITO: [${etichettaFiltro}]`;
+                        importoFormat = `€ ${c.totaleLiquidato.toFixed(2)}`;
+                    }
+
+                    printBody.innerHTML += `
+                        <tr class="border-b border-gray-300">
+                            <td class="py-2">${dataFormattata}</td>
+                            <td class="py-2 font-mono font-bold">${progressivoPezzo}</td>
+                            <td class="py-2 font-bold">${nomeOp}</td>
+                            <td class="py-2">${dettagliDest}</td>
+                            <td class="py-2">${metodo}</td>
+                            <td class="py-2 text-right font-bold">${importoFormat}</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            document.getElementById('print-storico-date').innerText = `Rapporto generato il: ${new Date().toLocaleDateString('it-IT')} alle ore ${new Date().toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'})}`;
+
+            document.getElementById('kpi-container').classList.add('no-print');
+            document.getElementById('main-grid').classList.add('no-print');
+            
+            const printArea = document.getElementById('print-area-storico');
+            printArea.classList.remove('hidden');
+
+            window.print();
+
+            document.getElementById('kpi-container').classList.remove('no-print');
+            document.getElementById('main-grid').classList.remove('no-print');
+            printArea.classList.add('hidden');
+        }
+
+        // --- RENDERING TABELLA & CALCOLO QUOTE (CON FILTRO ESCLUSIONE SPESE GENERICHE, BANCA, PRELIEVI, GIROCONTI) ---
+        function renderingQuote() {
+            const tbody = document.getElementById('tabella-quote');
+            tbody.innerHTML = '';
+
+            const filtro = document.getElementById('filtro-chiave').value.toUpperCase().trim();
+            const mostraArchiviati = document.getElementById('mostra-archiviati').checked;
+
+            let lordoAsd = 0;
+            let lordoTecnico = 0;
+
+            // Filtriamo i movimenti escludendo le spese senza specifica attività, versamenti in banca, prelievi e giroconti
+            let movimentiFiltrati = pagamenti.filter(p => {
+                const causale = (p.causale || "").toUpperCase();
+                const tipoMovimento = (p.tipo || "").toUpperCase();
+                const attivita = (p.attivita || "").toUpperCase();
+
+                // 1. Esclusione automatica di versamenti, prelievi e giroconti
+                if (
+                    causale.includes('VERSAMENTO') || 
+                    causale.includes('PRELIEVO') || 
+                    causale.includes('GIROCONTO') ||
+                    tipoMovimento.includes('VERSAMENTO') || 
+                    tipoMovimento.includes('PRELIEVO') || 
+                    tipoMovimento.includes('GIROCONTO')
+                ) {
+                    return false;
+                }
+
+                // 2. Se è un'uscita ma non ha una specifica attività indicata, viene nascosta
+                if (tipoMovimento === 'USCITA' && (!attivita || attivita === '')) {
+                    return false;
+                }
+
+                // 3. Applicazione del filtro di ricerca attivo (se presente)
+                if (filtro !== "") {
+                    const nomeSoggetto = (p.nome || "").toUpperCase();
+
+                    if (!nomeSoggetto.includes(filtro) && !attivita.includes(filtro) && !causale.includes(filtro)) {
+                        return false;
+                    }
+                }
+                
+                // 4. Se è un'entrata e sono archiviati
+                if (p.tipo === 'ENTRATA' && !mostraArchiviati) {
+                    const asdLiquidata = isQuotaGiaLiquidata(p, 'ASD');
+                    const tecnicoLiquidata = isQuotaGiaLiquidata(p, 'TECNICO');
+                    if (asdLiquidata && tecnicoLiquidata) return false;
+                }
+
+                return true; 
+            });
+
+            if (movimentiFiltrati.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-slate-500 italic print:text-black">Nessun movimento trovato</td></tr>`;
+            } else {
+                movimentiFiltrati.sort((a, b) => new Date(b.data) - new Date(a.data));
+
+                movimentiFiltrati.forEach(p => {
+                    const importoNum = parseFloat(p.importo) || 0;
+
+                    if (p.tipo === 'USCITA') {
+                        // Le uscite si ripartiscono al 50/50 tra ASD e Tecnico
+                        const metaUscita = importoNum / 2;
+                        lordoAsd -= metaUscita;
+                        lordoTecnico -= metaUscita;
+
+                        tbody.innerHTML += `
+                            <tr class="border-b border-white/5 hover:bg-white/5 transition print:border-gray-300 bg-rose-950/20">
+                                <td class="py-3 px-2 text-slate-300 font-mono text-xs print:text-black">${formattaData(p.data)}</td>
+                                <td class="py-3 px-2 font-bold text-slate-200 print:text-black">
+                                    <span class="text-[9px] bg-rose-800 text-rose-200 px-1 rounded uppercase mr-1">USCITA</span>
+                                    <span class="text-xs text-rose-400">[${p.attivita}]</span> ${p.causale}
+                                    <button onclick="cancellaMovimento('${p.id}')" class="text-slate-500 hover:text-red-400 text-xs ml-2 no-print">✕</button>
+                                </td>
+                                <td class="py-3 px-2 text-right font-bold text-rose-400 print:text-black">- € ${importoNum.toFixed(2)}</td>
+                                <td class="py-3 px-2 text-right font-mono text-rose-400 print:text-black">- € ${metaUscita.toFixed(2)}</td>
+                                <td class="py-3 px-2 text-right font-mono text-rose-400 print:text-black">- € ${metaUscita.toFixed(2)}</td>
+                            </tr>
+                        `;
+                    } else {
+                        // Entrate normali (Quote mensili)
+                        const meta = importoNum / 2;
+                        const asdLiquidata = isQuotaGiaLiquidata(p, 'ASD');
+                        const tecnicoLiquidata = isQuotaGiaLiquidata(p, 'TECNICO');
+
+                        if (!asdLiquidata) lordoAsd += meta;
+                        if (!tecnicoLiquidata) lordoTecnico += meta;
+
+                        const dettagliAttivita = p.attivita ? 
+                            `<span class="text-xs text-amber-400 block print:text-black">[${p.attivita}]</span> ${p.nome}` : 
+                            `${p.nome}`;
+
+                        let stileAsd = asdLiquidata ? "line-through opacity-30 text-slate-500" : "text-amber-400";
+                        let stileTecnico = tecnicoLiquidata ? "line-through opacity-30 text-slate-500" : "text-emerald-400";
+                        let stileRigaGabbia = (asdLiquidata && tecnicoLiquidata) ? "opacity-30 bg-slate-950/20" : "";
+
+                        let badgeStatus = "";
+                        if (asdLiquidata && tecnicoLiquidata) {
+                            badgeStatus = `<span class="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded uppercase font-bold ml-2">Liquidato Totale</span>`;
+                        } else if (asdLiquidata) {
+                            badgeStatus = `<span class="text-[9px] bg-amber-950/40 text-amber-400 px-1.5 py-0.5 rounded uppercase font-bold ml-2">Liquidato ASD</span>`;
+                        } else if (tecnicoLiquidata) {
+                            badgeStatus = `<span class="text-[9px] bg-emerald-950/40 text-emerald-400 px-1.5 py-0.5 rounded uppercase font-bold ml-2">Liquidato Tecnico</span>`;
+                        }
+
+                        tbody.innerHTML += `
+                            <tr class="border-b border-white/5 hover:bg-white/5 transition print:border-gray-300 ${stileRigaGabbia}">
+                                <td class="py-3 px-2 text-slate-300 font-mono text-xs print:text-black">${formattaData(p.data)}</td>
+                                <td class="py-3 px-2 font-bold text-slate-200 print:text-black">
+                                    <div class="flex items-center justify-between">
+                                        <span>${dettagliAttivita} ${badgeStatus}</span>
+                                        <button onclick="cancellaMovimento('${p.id}')" class="text-slate-500 hover:text-red-400 text-xs ml-2 no-print">✕</button>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-2 text-right font-bold text-white print:text-black">€ ${importoNum.toFixed(2)}</td>
+                                <td class="py-3 px-2 text-right font-mono print:text-black ${stileAsd}">€ ${meta.toFixed(2)}</td>
+                                <td class="py-3 px-2 text-right font-mono print:text-black ${stileTecnico}">€ ${meta.toFixed(2)}</td>
+                            </tr>
+                        `;
+                    }
+                });
+            }
+
+            let totaleAccontiAsd = 0;
+            let totaleAccontiTecnico = 0;
+
+            chiusure.forEach(c => {
+                if (c.tipoOperazione === 'ACCONTO') {
+                    let corrispondeFiltro = false;
+                    if (filtro === "") {
+                        corrispondeFiltro = true; 
+                    } else {
+                        corrispondeFiltro = (c.filtro && c.filtro.toUpperCase().trim() === filtro);
+                    }
+
+                    if (corrispondeFiltro) {
+                        if (c.destinatario === 'ASD') totaleAccontiAsd += c.importo;
+                        if (c.destinatario === 'TECNICO') totaleAccontiTecnico += c.importo;
+                    }
+                }
+            });
+
+            const nettoAsd = Math.max(0, lordoAsd - totaleAccontiAsd);
+            const nettoTecnico = Math.max(0, lordoTecnico - totaleAccontiTecnico);
+            const lordoPeriodoTotale = lordoAsd + lordoTecnico;
+
+            document.getElementById('kpi-totale').innerText = `€ ${(nettoAsd + nettoTecnico).toFixed(2)}`;
+            document.getElementById('kpi-totale-dettaglio').innerText = `Netto Periodo: € ${lordoPeriodoTotale.toFixed(2)}`;
+
+            document.getElementById('kpi-asd').innerText = `€ ${nettoAsd.toFixed(2)}`;
+            document.getElementById('kpi-asd-dettaglio').innerText = `Netto: €${lordoAsd.toFixed(2)} | Acconti: €${totaleAccontiAsd.toFixed(2)}`;
+
+            document.getElementById('kpi-tecnici').innerText = `€ ${nettoTecnico.toFixed(2)}`;
+            document.getElementById('kpi-tecnici-dettaglio').innerText = `Netto: €${lordoTecnico.toFixed(2)} | Acconti: €${totaleAccontiTecnico.toFixed(2)}`;
+        }
+
+        function formattaData(stringData) {
+            if (!stringData) return "-";
+            const d = new Date(stringData);
+            return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+
+        function stampaEstrattoConto() {
+            const filtroAttivo = document.getElementById('filtro-chiave').value.toUpperCase().trim();
+            const stringaFiltro = filtroAttivo ? `FILTRATO PER: "${filtroAttivo}"` : "COMPLESSIVO COMPLETO";
+            
+            document.getElementById('print-date').innerText = `Rilascio in data: ${new Date().toLocaleDateString('it-IT')} | Ambito: ${stringaFiltro}`;
+            
+            window.print();
+        }
+
+        window.addEventListener('storage', () => {
+            caricaDati();
+            applicaNomeAsd();
+            renderingCollaboratori();
+            renderingChiusures();
+            renderingQuote();
+        });
+    </script>
+</body>
+</html>
