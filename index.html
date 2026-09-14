@@ -194,6 +194,21 @@
             let tentativiFalliti = parseInt(localStorage.getItem('asd_tentativi') || '0');
 
             if (databaseCodici[codice]) {
+                // Calcola la data odierna locale nel formato YYYY-MM-DD
+                const d = new Date();
+                const anno = d.getFullYear();
+                const mese = String(d.getMonth() + 1).padStart(2, '0');
+                const giorno = String(d.getDate()).padStart(2, '0');
+                const oggi = `${anno}-${mese}-${giorno}`;
+
+                const scadenza = databaseCodici[codice].scadenza;
+
+                if (oggi > scadenza) {
+                    errorMsg.innerText = "Codice scaduto in data " + scadenza + ". Contatta l'amministratore.";
+                    registraTentativoFallito();
+                    return;
+                }
+
                 errorMsg.innerText = "Accesso consentito!";
                 localStorage.setItem('asd_utente_corrente', codice);
                 localStorage.setItem('asd_tentativi', '0');
@@ -211,6 +226,16 @@
                 } else {
                     errorMsg.innerText = `Codice errato. Tentativi rimasti: ${MAX_TENTATIVI - tentativiFalliti}`;
                 }
+            }
+        }
+
+        function registraTentativoFallito() {
+            let tentativiFalliti = parseInt(localStorage.getItem('asd_tentativi') || '0') + 1;
+            localStorage.setItem('asd_tentativi', tentativiFalliti);
+            if (tentativiFalliti >= MAX_TENTATIVI) {
+                const tempoBlocco = new Date().getTime() + (15 * 60 * 1000);
+                localStorage.setItem('asd_blocco_fino', tempoBlocco);
+                document.getElementById('codice-input').disabled = true;
             }
         }
 
