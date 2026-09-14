@@ -186,7 +186,7 @@
             }
         }
 
-        async function verificaAccesso(event) {
+        function verificaAccesso(event) {
             event.preventDefault();
             const codice = document.getElementById('codice-input').value.trim();
             const errorMsg = document.getElementById('error-msg');
@@ -194,26 +194,7 @@
             let tentativiFalliti = parseInt(localStorage.getItem('asd_tentativi') || '0');
 
             if (databaseCodici[codice]) {
-                errorMsg.innerText = "Verifica in corso...";
-                
-                let oggi;
-                try {
-                    const response = await fetch('https://worldtimeapi.org/api/timezone/Europe/Rome');
-                    const data = await response.json();
-                    oggi = data.datetime.split('T')[0];
-                } catch (err) {
-                    errorMsg.innerText = "Impossibile verificare la data online. Controlla la connessione internet.";
-                    return;
-                }
-
-                const scadenza = databaseCodici[codice].scadenza;
-
-                if (oggi > scadenza) {
-                    errorMsg.innerText = "Codice scaduto in data " + scadenza + ". Contatta l'amministratore.";
-                    registraTentativoFallito();
-                    return;
-                }
-
+                errorMsg.innerText = "Accesso consentito!";
                 localStorage.setItem('asd_utente_corrente', codice);
                 localStorage.setItem('asd_tentativi', '0');
                 localStorage.setItem('asd_sessione_attiva', 'true');
@@ -230,16 +211,6 @@
                 } else {
                     errorMsg.innerText = `Codice errato. Tentativi rimasti: ${MAX_TENTATIVI - tentativiFalliti}`;
                 }
-            }
-        }
-
-        function registraTentativoFallito() {
-            let tentativiFalliti = parseInt(localStorage.getItem('asd_tentativi') || '0') + 1;
-            localStorage.setItem('asd_tentativi', tentativiFalliti);
-            if (tentativiFalliti >= MAX_TENTATIVI) {
-                const tempoBlocco = new Date().getTime() + (15 * 60 * 1000);
-                localStorage.setItem('asd_blocco_fino', tempoBlocco);
-                document.getElementById('codice-input').disabled = true;
             }
         }
 
