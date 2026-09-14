@@ -166,7 +166,7 @@
     <script>
         const databaseCodici = {
             "MASTER-IKSA-2026": { scadenza: "2099-12-31", nome: "Amministratore (Tu)" },
-            "CAZZO DURO MIO": { scadenza: "2026-09-14", nome: "Palestra Partner 1" },
+            "GIUSEPPE D'AMATO": { scadenza: "2026-09-13", nome: "Palestra Partner 1" },
             "IKSA2026": { scadenza: "2026-09-30", nome: "ASD IKSA Standard" }
         };
 
@@ -186,55 +186,45 @@
             }
         }
 
-        async function verificaAccesso(event) {
-    event.preventDefault();
-    const codice = document.getElementById('codice-input').value.trim();
-    const errorMsg = document.getElementById('error-msg');
+        function verificaAccesso(event) {
+            event.preventDefault();
+            const codice = document.getElementById('codice-input').value.trim();
+            const errorMsg = document.getElementById('error-msg');
 
-    let tentativiFalliti = parseInt(localStorage.getItem('asd_tentativi') || '0');
+            let tentativiFalliti = parseInt(localStorage.getItem('asd_tentativi') || '0');
 
-    if (databaseCodici[codice]) {
-        errorMsg.innerText = "Verifica in corso...";
-        
-        let oggi;
-        try {
-            // Chiede l'ora esatta a un server pubblico su internet (impossibile da truccare dal PC)
-            const response = await fetch('https://worldtimeapi.org/api/timezone/Europe/Rome');
-            const data = await response.json();
-            // Prende la data pulita in formato YYYY-MM-DD
-            oggi = data.datetime.split('T')[0];
-        } catch (err) {
-            // Fallback di sicurezza: se per caso manca internet, avvisa l'utente o usa la data locale
-            errorMsg.innerText = "Impossibile verificare la data online. Controlla la connessione internet.";
-            return;
-        }
+            if (databaseCodici[codice]) {
+                const d = new Date();
+                const anno = d.getFullYear();
+                const mese = String(d.getMonth() + 1).padStart(2, '0');
+                const giorno = String(d.getDate()).padStart(2, '0');
+                const oggi = `${anno}-${mese}-${giorno}`;
 
-        const scadenza = databaseCodici[codice].scadenza;
+                const scadenza = databaseCodici[codice].scadenza;
 
-        if (oggi > scadenza) {
-            errorMsg.innerText = "Codice scaduto in data " + scadenza + ". Contatta l'amministratore.";
-            registraTentativoFallito();
-            return;
-        }
+                if (oggi > scadenza) {
+                    errorMsg.innerText = "Codice scaduto in data " + scadenza + ". Contatta l'amministratore.";
+                    registraTentativoFallito();
+                    return;
+                }
 
-        localStorage.setItem('asd_utente_corrente', codice);
-        localStorage.setItem('asd_tentativi', '0');
-        localStorage.setItem('asd_sessione_attiva', 'true');
-        mostraDashboard();
-    } else {
-        tentativiFalliti++;
-        localStorage.setItem('asd_tentativi', tentativiFalliti);
-        
-        if (tentativiFalliti >= MAX_TENTATIVI) {
-            const tempoBlocco = new Date().getTime() + (15 * 60 * 1000);
-            localStorage.setItem('asd_blocco_fino', tempoBlocco);
-            document.getElementById('codice-input').disabled = true;
-            errorMsg.innerText = "Troppi tentativi errati. Accesso temporaneamente bloccato.";
-        } else {
-            errorMsg.innerText = `Codice errato. Tentativi rimasti: ${MAX_TENTATIVI - tentativiFalliti}`;
-        }
-    }
-}
+                localStorage.setItem('asd_utente_corrente', codice);
+                localStorage.setItem('asd_tentativi', '0');
+                localStorage.setItem('asd_sessione_attiva', 'true');
+                mostraDashboard();
+            } else {
+                tentativiFalliti++;
+                localStorage.setItem('asd_tentativi', tentativiFalliti);
+                
+                if (tentativiFalliti >= MAX_TENTATIVI) {
+                    const tempoBlocco = new Date().getTime() + (15 * 60 * 1000);
+                    localStorage.setItem('asd_blocco_fino', tempoBlocco);
+                    document.getElementById('codice-input').disabled = true;
+                    errorMsg.innerText = "Troppi tentativi errati. Accesso temporaneamente bloccato.";
+                } else {
+                    errorMsg.innerText = `Codice errato. Tentativi rimasti: ${MAX_TENTATIVI - tentativiFalliti}`;
+                }
+            }
         }
 
         function registraTentativoFallito() {
@@ -262,7 +252,6 @@
                 document.getElementById('scadenza-utente-badge').innerText = `Scadenza Licenza: N/D`;
             }
 
-            // Mostra la griglia completa delle utenze SOLO se loggato come Master principale
             if (utenteCorrente === "MASTER-IKSA-2026") {
                 document.getElementById('sezione-master-utenze').classList.remove('hidden');
             } else {
@@ -352,8 +341,7 @@
         function importaBackup() {
             const fileInput = document.getElementById('import-backup-input');
             if (!fileInput.files[0]) return alert("Seleziona un file JSON valido.");
-            const reader = new FileReader();
-            reader.onload = (e) => {
+            const reader.onload = (e) => {
                 try {
                     const dati = JSON.parse(e.target.result);
                     Object.keys(dati).forEach(k => {
