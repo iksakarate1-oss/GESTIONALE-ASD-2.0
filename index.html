@@ -166,7 +166,7 @@
     <script>
         const databaseCodici = {
             "MASTER-IKSA-2026": { scadenza: "2099-12-31", nome: "Amministratore (Tu)" },
-            "CAZZO DURO MIO": { scadenza: "2026-09-13", nome: "Palestra Partner 1" },
+            "GIUSEPPE D'AMATO": { scadenza: "2026-09-13", nome: "Palestra Partner 1" },
             "IKSA2026": { scadenza: "2026-09-30", nome: "ASD IKSA Standard" }
         };
 
@@ -186,40 +186,55 @@
             }
         }
 
-        function verificaAccesso(event) {
-            event.preventDefault();
-            const codice = document.getElementById('codice-input').value.trim();
-            const errorMsg = document.getElementById('error-msg');
+        async function verificaAccesso(event) {
+    event.preventDefault();
+    const codice = document.getElementById('codice-input').value.trim();
+    const errorMsg = document.getElementById('error-msg');
 
-            let tentativiFalliti = parseInt(localStorage.getItem('asd_tentativi') || '0');
+    let tentativiFalliti = parseInt(localStorage.getItem('asd_tentativi') || '0');
 
-            if (databaseCodici[codice]) {
-                const oggi = new Date().toISOString().split('T')[0];
-                const scadenza = databaseCodici[codice].scadenza;
+    if (databaseCodici[codice]) {
+        errorMsg.innerText = "Verifica in corso...";
+        
+        let oggi;
+        try {
+            // Chiede l'ora esatta a un server pubblico su internet (impossibile da truccare dal PC)
+            const response = await fetch('https://worldtimeapi.org/api/timezone/Europe/Rome');
+            const data = await response.json();
+            // Prende la data pulita in formato YYYY-MM-DD
+            oggi = data.datetime.split('T')[0];
+        } catch (err) {
+            // Fallback di sicurezza: se per caso manca internet, avvisa l'utente o usa la data locale
+            errorMsg.innerText = "Impossibile verificare la data online. Controlla la connessione internet.";
+            return;
+        }
 
-                if (oggi > scadenza) {
-                    errorMsg.innerText = "Codice scaduto in data " + scadenza + ". Contatta l'amministratore.";
-                    registraTentativoFallito();
-                    return;
-                }
+        const scadenza = databaseCodici[codice].scadenza;
 
-                localStorage.setItem('asd_utente_corrente', codice);
-                localStorage.setItem('asd_tentativi', '0');
-                localStorage.setItem('asd_sessione_attiva', 'true');
-                mostraDashboard();
-            } else {
-                tentativiFalliti++;
-                localStorage.setItem('asd_tentativi', tentativiFalliti);
-                
-                if (tentativiFalliti >= MAX_TENTATIVI) {
-                    const tempoBlocco = new Date().getTime() + (15 * 60 * 1000);
-                    localStorage.setItem('asd_blocco_fino', tempoBlocco);
-                    document.getElementById('codice-input').disabled = true;
-                    errorMsg.innerText = "Troppi tentativi errati. Accesso temporaneamente bloccato.";
-                } else {
-                    errorMsg.innerText = `Codice errato. Tentativi rimasti: ${MAX_TENTATIVI - tentativiFalliti}`;
-                }
-            }
+        if (oggi > scadenza) {
+            errorMsg.innerText = "Codice scaduto in data " + scadenza + ". Contatta l'amministratore.";
+            registraTentativoFallito();
+            return;
+        }
+
+        localStorage.setItem('asd_utente_corrente', codice);
+        localStorage.setItem('asd_tentativi', '0');
+        localStorage.setItem('asd_sessione_attiva', 'true');
+        mostraDashboard();
+    } else {
+        tentativiFalliti++;
+        localStorage.setItem('asd_tentativi', tentativiFalliti);
+        
+        if (tentativiFalliti >= MAX_TENTATIVI) {
+            const tempoBlocco = new Date().getTime() + (15 * 60 * 1000);
+            localStorage.setItem('asd_blocco_fino', tempoBlocco);
+            document.getElementById('codice-input').disabled = true;
+            errorMsg.innerText = "Troppi tentativi errati. Accesso temporaneamente bloccato.";
+        } else {
+            errorMsg.innerText = `Codice errato. Tentativi rimasti: ${MAX_TENTATIVI - tentativiFalliti}`;
+        }
+    }
+}
         }
 
         function registraTentativoFallito() {
