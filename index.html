@@ -166,7 +166,7 @@
     <script>
         const databaseCodici = {
             "MASTER-IKSA-2026": { scadenza: "2099-12-31", nome: "Amministratore (Tu)" },
-            "CAZZO DURO MIO": { scadenza: "2026-09-13", nome: "Palestra Partner 1" },
+            "GIUSEPPE D'AMATO": { scadenza: "2026-09-13", nome: "Palestra Partner 1" },
             "IKSA2026": { scadenza: "2026-09-30", nome: "ASD IKSA Standard" }
         };
 
@@ -341,7 +341,8 @@
         function importaBackup() {
             const fileInput = document.getElementById('import-backup-input');
             if (!fileInput.files[0]) return alert("Seleziona un file JSON valido.");
-            const reader.onload = (e) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
                 try {
                     const dati = JSON.parse(e.target.result);
                     Object.keys(dati).forEach(k => {
