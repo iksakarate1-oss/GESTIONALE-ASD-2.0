@@ -151,13 +151,22 @@
 
     <script>
         const DATABASE_UTENTI = {
-            "MASTER-IKSA-2026": { nome: "Amministratore Master", ruolo: "master", attivo: true, scadenza: "2025-12-31" },
+            "MASTER-IKSA-2026": { nome: "Amministratore Master", ruolo: "master", attivo: true, scadenza: "2099-12-31" },
             "IKSA-PALERMO-1":   { nome: "Sede Palermo 1", ruolo: "standard", attivo: true, scadenza: "2026-12-31" },
             "IKSA-PALERMO-2":   { nome: "Sede Palermo 2", ruolo: "standard", attivo: false, scadenza: "2026-08-30" },
-            "IKSA2026":         { nome: "ASD IKSA Standard", ruolo: "standard", attivo: true, scadenza: "2026-12-31" }
+            "IKSA2026":         { nome: "ASD IKSA Standard", ruolo: "standard", attivo: true, scadenza: "2025-12-31" }
         };
 
         const UTENTI_BLOCCATI = ["IKSA-PALERMO-2"];
+
+        // Funzione per controllare se la data di scadenza è superata rispetto ad oggi
+        function isLicenzaScaduta(dataScadenzaStr) {
+            if (!dataScadenzaStr) return false;
+            const oggi = new Date();
+            oggi.setHours(0, 0, 0, 0);
+            const scadenza = new Date(dataScadenzaStr);
+            return oggi > scadenza;
+        }
 
         function effettuaLogoutForzato(messaggio) {
             localStorage.removeItem('asd_sessione_v2');
@@ -181,8 +190,15 @@
                 return;
             }
 
-            if (UTENTI_BLOCCATI.includes(utenteCorrente) || !DATABASE_UTENTI[utenteCorrente] || DATABASE_UTENTI[utenteCorrente].attivo !== true) {
+            const utenteInfo = DATABASE_UTENTI[utenteCorrente];
+
+            if (UTENTI_BLOCCATI.includes(utenteCorrente) || !utenteInfo || utenteInfo.attivo !== true) {
                 effettuaLogoutForzato("ACCESSO REVOCATO: L'utenza è stata disattivata.");
+                return;
+            }
+
+            if (isLicenzaScaduta(utenteInfo.scadenza)) {
+                effettuaLogoutForzato("LICENZA SCADUTA: Il tuo abbonamento è scaduto il " + utenteInfo.scadenza + ". Contatta l'amministratore.");
                 return;
             }
 
@@ -211,6 +227,11 @@
                 return;
             }
 
+            if (isLicenzaScaduta(utenteInfo.scadenza)) {
+                errorMsg.innerText = "LICENZA SCADUTA: Il tuo abbonamento è scaduto il " + utenteInfo.scadenza + ". Contatta l'amministratore.";
+                return;
+            }
+
             errorMsg.innerText = "";
             localStorage.setItem('asd_utente_corrente', codice);
             localStorage.setItem('asd_sessione_v2', 'true');
@@ -229,6 +250,11 @@
 
             if (!utenteInfo || !utenteInfo.attivo) {
                 effettuaLogoutForzato("Sessione non valida o disattivata.");
+                return;
+            }
+
+            if (isLicenzaScaduta(utenteInfo.scadenza)) {
+                effettuaLogoutForzato("LICENZA SCADUTA: Il tuo abbonamento è scaduto il " + utenteInfo.scadenza + ". Contatta l'amministratore.");
                 return;
             }
 
@@ -269,8 +295,18 @@
 
             Object.keys(DATABASE_UTENTI).forEach(codice => {
                 const u = DATABASE_UTENTI[codice];
-                const statoColore = u.attivo ? 'text-emerald-400' : 'text-red-500';
-                const statoTesto = u.attivo ? 'ATTIVO' : 'DISATTIVATO / BLOCCATO';
+                const scaduta = isLicenzaScaduta(u.scadenza);
+                
+                let statoColore = 'text-emerald-400';
+                let statoTesto = 'ATTIVO';
+
+                if (!u.attivo) {
+                    statoColore = 'text-red-500';
+                    statoTesto = 'DISATTIVATO / BLOCCATO';
+                } else if (scaduta) {
+                    statoColore = 'text-amber-500';
+                    statoTesto = 'LICENZA SCADUTA';
+                }
 
                 const html = `
                     <div class="bg-slate-900/60 p-4 rounded-xl border border-white/10 flex flex-col justify-between">
