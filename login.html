@@ -154,7 +154,7 @@
             "MASTER-IKSA-2026": { nome: "Amministratore Master", ruolo: "master", attivo: true, scadenza: "2099-12-31" },
             "IKSA-PALERMO-1":   { nome: "Sede Palermo 1", ruolo: "standard", attivo: true, scadenza: "2026-12-31" },
             "IKSA-PALERMO-2":   { nome: "Sede Palermo 2", ruolo: "standard", attivo: false, scadenza: "2026-08-30" },
-            "IKSA2026":         { nome: "ASD IKSA Standard", ruolo: "standard", attivo: true, scadenza: "2026-11-16" }
+            "IKSA2026":         { nome: "ASD IKSA Standard", ruolo: "standard", attivo: true, scadenza: "2026-12-31" }
         };
 
         const UTENTI_BLOCCATI = ["IKSA-PALERMO-2"];
@@ -162,7 +162,7 @@
         function effettuaLogoutForzato(messaggio) {
             localStorage.removeItem('asd_sessione_v2');
             localStorage.removeItem('asd_utente_corrente');
-            localStorage.removeItem('asd_sessione_attiva'); // Rimuove anche la vecchia chiave salvata
+            localStorage.removeItem('asd_sessione_attiva');
             document.getElementById('dashboard-container').classList.add('hidden');
             document.getElementById('login-container').classList.remove('hidden');
             if (messaggio) {
@@ -171,13 +171,17 @@
         }
 
         function init() {
-            // Cancella subito ogni traccia delle vecchie sessioni bloccate
             localStorage.removeItem('asd_sessione_attiva');
 
             const utenteCorrente = (localStorage.getItem('asd_utente_corrente') || '').trim().toUpperCase();
             const sessioneAttiva = localStorage.getItem('asd_sessione_v2');
 
-            if (UTENTI_BLOCCATI.includes(utenteCorrente) || !utenteCorrente || sessioneAttiva !== "true" || !DATABASE_UTENTI[utenteCorrente] || DATABASE_UTENTI[utenteCorrente].attivo !== true) {
+            if (!utenteCorrente || sessioneAttiva !== "true") {
+                effettuaLogoutForzato("");
+                return;
+            }
+
+            if (UTENTI_BLOCCATI.includes(utenteCorrente) || !DATABASE_UTENTI[utenteCorrente] || DATABASE_UTENTI[utenteCorrente].attivo !== true) {
                 effettuaLogoutForzato("ACCESSO REVOCATO: L'utenza è stata disattivata.");
                 return;
             }
@@ -352,7 +356,6 @@
             }
         }
 
-        // Avvio immediato all'apertura
         init();
     </script>
 </body>
