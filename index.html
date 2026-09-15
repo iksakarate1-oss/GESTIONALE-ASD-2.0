@@ -2,25 +2,27 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aggiornamento di Sicurezza</title>
     <script>
-        // Cancella TUTTA la memoria locale del browser dell'utente (comprese le vecchie sessioni IKSA2026)
+        // 1. Cancella del tutto la memoria salvata nell'iPhone/browser
         localStorage.clear();
         sessionStorage.clear();
 
-        // Forza la disconnessione dei Service Worker/PWA salvati su iPhone
+        // 2. Elimina eventuali Service Worker o Web App salvate in memoria
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                for(let registration of registrations) {
+                for (let registration of registrations) {
                     registration.unregister();
                 }
             });
         }
 
-        // Reindirizza con un parametro casuale per bypassare la cache di Vercel/Safari
-        window.location.href = "login_v2.html?v=" + new Date().getTime();
+        // 3. Redirige forzatamente verso la nuova pagina di login bypassando la cache
+        window.location.href = "login.html?v=" + new Date().getTime();
     </script>
 </head>
-<body>
-    <p style="color: white; text-align: center; margin-top: 50px;">Aggiornamento di sicurezza in corso...</p>
+<body style="background: #0b1120; color: white; display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif;">
+    <p style="text-align: center; font-weight: bold;">Aggiornamento di sicurezza in corso...</p>
 </body>
 </html>
