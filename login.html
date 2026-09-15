@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>ASD IKSA - ACCESSO E DASHBOARD</title>
+    <title>GESTIONALE 2.0 - ACCESSO E DASHBOARD</title>
     <script src="https://cdn.tailwindcss.com?v=3.0"></script>
     <style>
         body { background: #0b1120; color: white; min-height: 100vh; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; }
@@ -19,8 +19,8 @@
 
     <!-- SCHERMATA DI LOGIN -->
     <div id="login-container" class="max-w-md w-full glass p-8 rounded-[2.5rem] shadow-2xl text-center">
-        <div class="logo-box w-20 h-20 mx-auto mb-6 bg-orange-500 rounded-3xl flex items-center justify-center font-black italic text-3xl border-4 border-white/10 shadow-2xl">IK</div>
-        <h1 class="text-3xl font-black italic tracking-tighter text-amber-400 mb-2">ASD IKSA</h1>
+        <div class="logo-box w-auto h-20 px-4 mx-auto mb-6 bg-orange-500 rounded-3xl flex items-center justify-center font-black italic text-xl border-4 border-white/10 shadow-2xl">GEST2.0</div>
+        <h1 class="text-3xl font-black italic tracking-tighter text-amber-400 mb-2">GESTIONALE 2.0</h1>
         <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-8">Inserisci il tuo codice di accesso</p>
         
         <form onsubmit="verificaAccesso(event)" class="space-y-4">
@@ -33,8 +33,8 @@
     <!-- DASHBOARD PRINCIPALE -->
     <div id="dashboard-container" class="w-full flex flex-col items-center hidden">
         <div class="text-center mb-12 mt-6">
-            <div id="main-logo" class="logo-box w-28 h-28 mx-auto mb-6 bg-orange-500 rounded-[2.5rem] flex items-center justify-center font-black italic text-4xl border-4 border-white/10 shadow-2xl transition-transform duration-500 hover:scale-105">IK</div>
-            <h1 id="main-title" class="text-5xl font-black italic tracking-tighter text-amber-400 mb-2">ASD IKSA</h1>
+            <div id="main-logo" class="logo-box w-auto h-28 px-6 mx-auto mb-6 bg-orange-500 rounded-[2.5rem] flex items-center justify-center font-black italic text-3xl border-4 border-white/10 shadow-2xl transition-transform duration-500 hover:scale-105">GEST2.0</div>
+            <h1 id="main-title" class="text-5xl font-black italic tracking-tighter text-amber-400 mb-2">GESTIONALE 2.0</h1>
             <div id="main-sub-container" class="text-slate-500 text-xs font-bold uppercase tracking-[0.25em] max-w-2xl mx-auto space-y-2">
                 <p id="main-sub">Palermo • Sistema Gestionale 2026</p>
                 <p id="main-disciplines" class="text-amber-500/80 text-[10px] tracking-[0.2em] italic"></p>
@@ -105,6 +105,11 @@
             <a href="documenti.html" class="glass p-8 rounded-[2.5rem] card-hover text-center group border border-dashed border-cyan-500/10">
                 <div class="text-5xl mb-4 group-hover:scale-110 transition">📄</div>
                 <h2 class="text-xl font-black uppercase italic text-white group-hover:text-cyan-400">Documenti</h2>
+            </a>
+
+            <a href="personalizzabile.html" class="glass p-8 rounded-[2.5rem] card-hover text-center group border border-dashed border-indigo-500/20">
+                <div class="text-5xl mb-4 group-hover:scale-110 transition">⚙️</div>
+                <h2 class="text-xl font-black uppercase italic text-white group-hover:text-indigo-400">Personalizzabile</h2>
             </a>
 
             <div onclick="sincronizzaEBackup()" class="glass p-8 rounded-[2.5rem] card-hover text-center group cursor-pointer border border-dashed border-amber-500/30">
@@ -361,7 +366,7 @@
         }
 
         function sincronizzaEBackup() {
-            const chiavi = ['asd_config', 'asd_soci', 'asd_pagamenti', 'asd_presenze', 'asd_collaboratori', 'asd_chiusure_collaboratori', 'asd_info', 'asd_collaboratori_tecnici', 'asd_debiti', 'asd_volontari', 'asd_partite', 'asd_cinture_gare'];
+            const chiavi = ['asd_config', 'asd_soci', 'asd_pagamenti', 'asd_presenze', 'asd_collaboratori', 'asd_chiusure_collaboratori', 'asd_info', 'asd_collaboratori_tecnici', 'asd_debiti', 'asd_volontari', 'asd_partite', 'asd_cinture_gare', 'asd_personalizzabile'];
             const datiSalvati = {};
             chiavi.forEach(chiave => { datiSalvati[chiave] = localStorage.getItem(chiave); });
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(datiSalvati, null, 2));
