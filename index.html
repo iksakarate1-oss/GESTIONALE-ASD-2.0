@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Blocco della cache per forzare il download della versione più recente -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>ASD IKSA - ACCESSO E DASHBOARD</title>
+    <script src="https://cdn.tailwindcss.com?v=3.0"></script>
+    <style>
+        body { background: #0b1120; color: white; min-height: 100vh; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .glass { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-8px); border-color: rgba(251, 191, 36, 0.4); background: rgba(30, 41, 59, 0.6); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+        .logo-box { box-shadow: 0 0 30px rgba(245, 158, 11, 0.2); overflow: hidden; }
+    </style>
+</head>
+<body class="p-6 w-full">
+
+    <!-- SCHERMATA DI LOGIN -->
+    <div id="login-container" class="max-w-md w-full glass p-8 rounded-[2.5rem] shadow-2xl text-center">
+        <div class="logo-box w-20 h-20 mx-auto mb-6 bg-orange-500 rounded-3xl flex items-center justify-center font-black italic text-3xl border-4 border-white/10 shadow-2xl">IK</div>
+        <h1 class="text-3xl font-black italic tracking-tighter text-amber-400 mb-2">ASD IKSA</h1>
+        <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-8">Inserisci il tuo codice di accesso</p>
+        
+        <form onsubmit="verificaAccesso(event)" class="space-y-4">
+            <input type="text" id="codice-input" placeholder="Inserisci Codice Utente" required class="w-full bg-slate-900 p-4 rounded-xl border border-white/10 text-center text-white tracking-widest text-lg focus:border-amber-400 outline-none uppercase">
+            <button type="submit" class="w-full bg-amber-500 text-black font-black py-4 rounded-xl hover:bg-amber-400 transition uppercase tracking-wider text-sm">Accedi al Sistema</button>
+        </form>
+        <p id="error-msg" class="text-red-400 text-xs mt-4 font-bold min-h-[16px]"></p>
+    </div>
+
+    <!-- DASHBOARD PRINCIPALE -->
+    <div id="dashboard-container" class="w-full flex flex-col items-center hidden">
+        <div class="text-center mb-12 mt-6">
+            <div id="main-logo" class="logo-box w-28 h-28 mx-auto mb-6 bg-orange-500 rounded-[2.5rem] flex items-center justify-center font-black italic text-4xl border-4 border-white/10 shadow-2xl transition-transform duration-500 hover:scale-105">IK</div>
+            <h1 id="main-title" class="text-5xl font-black italic tracking-tighter text-amber-400 mb-2">ASD IKSA</h1>
+            <div id="main-sub-container" class="text-slate-500 text-xs font-bold uppercase tracking-[0.25em] max-w-2xl mx-auto space-y-2">
+                <p id="main-sub">Palermo • Sistema Gestionale 2026</p>
+                <p id="main-disciplines" class="text-amber-500/80 text-[10px] tracking-[0.2em] italic"></p>
+            </div>
+            <div class="mt-4 space-y-2">
+                <div>
+                    <span id="utente-connesso-badge" class="inline-block bg-amber-500/20 text-amber-400 text-xs px-3 py-1 rounded-full font-bold"></span>
+                </div>
+                <div>
+                    <span id="scadenza-utente-badge" class="inline-block bg-slate-800 text-slate-300 text-xs px-3 py-1 rounded-full border border-white/10"></span>
+                </div>
+                <div class="pt-2">
+                    <button onclick="logout()" class="text-xs text-slate-400 hover:text-red-400 underline uppercase tracking-wider">Disconnetti / Cambia Utente</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEZIONE GESTIONE UTENZE E SCADENZE (Visibile solo al Master) -->
+        <div id="sezione-master-utenze" class="w-full max-w-6xl mb-8 hidden">
+            <div class="glass p-6 rounded-[2rem] border border-amber-500/30">
+                <h3 class="text-lg font-bold text-amber-400 mb-4 uppercase tracking-wider">Pannello Controllo Utenti (Area Master)</h3>
+                <div id="lista-utenti-master" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                    <!-- Generato dinamicamente dallo script -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Griglia Principale -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl w-full mb-12">
+            <a href="tesserati.html" class="glass p-8 rounded-[2.5rem] card-hover text-center group">
+                <div class="text-5xl mb-4 group-hover:scale-110 transition">👤</div>
+                <h2 class="text-xl font-black uppercase italic text-white group-hover:text-amber-400">Tesserati</h2>
+            </a>
+            
+            <a href="contabilita.html" class="glass p-8 rounded-[2.5rem] card-hover text-center group border border-dashed border-emerald-500/10">
+                <div class="text-5xl mb-4 group-hover:scale-110 transition">💶</div>
+                <h2 class="text-xl font-black uppercase italic text-white group-hover:text-emerald-400">Contabilità</h2>
+            </a>
+
+            <a href="presenze.html" class="glass p-8 rounded-[2.5rem] card-hover text-center group">
+                <div class="text-5xl mb-4 group-hover:scale-110 transition">📅</div>
+                <h2 class="text-xl font-black uppercase italic text-white group-hover:text-red-500">Presenze</h2>
+            </a>
+
+            <a href="scadenze.html" class="glass p-8 rounded-[2.5rem] card-hover text-center group">
+                <div class="text-5xl mb-4 group-hover:scale-110 transition">⏳</div>
+                <h2 class="text-xl font-black uppercase italic text-white group-hover:text-amber-400">Scadenze</h2>
+            </a>
+
+            <a href="collaboratori.html" class="glass p-8 rounded-[2.5rem] card-hover text-center group border border-dashed border-amber-500/10">
+                <div class="text-5xl mb-4 group-hover:scale-110 transition">🤝</div>
+                <h2 class="text-xl font-black uppercase italic text-white group-hover:text-amber-400">Collaboratori</h2>
+            </a>
+
+            <a href="volontari.html" class="glass p-8 rounded-[2.5rem] card-hover text-center group border border-dashed border-blue-500/10">
+                <div class="text-5xl mb-4 group-hover:scale-110 transition">🛡️</div>
+                <h2 class="text-xl font-black uppercase italic text-white group-hover:text-blue-400">Volontari</h2>
+            </a>
+
+            <a href="partite.html" class="glass p-8 rounded-[2.5rem] card-hover text-center group border border-dashed border-purple-500/10">
+                <div class="text-5xl mb-4 group-hover:scale-110 transition">⚔️</div>
+                <h2 class="text-xl font-black uppercase italic text-white group-hover:text-purple-400">Partite Aperte</h2>
+            </a>
+
+            <a href="cinture_gare.html" class="glass p-8 rounded-[2.5rem] card-hover text-center group border border-dashed border-amber-500/20">
+                <div class="text-5xl mb-4 group-hover:scale-110 transition">🥋</div>
+                <h2 class="text-xl font-black uppercase italic text-white group-hover:text-amber-400">Gradi, Esami & Gare</h2>
+            </a>
+
+            <div onclick="sincronizzaEBackup()" class="glass p-8 rounded-[2.5rem] card-hover text-center group cursor-pointer border border-dashed border-amber-500/30">
+                <div class="text-5xl mb-4 group-hover:rotate-180 transition duration-700">🔄</div>
+                <h2 class="text-xl font-black uppercase italic text-white group-hover:text-amber-500">Backup JSON</h2>
+            </div>
+        </div>
+
+        <div class="w-full max-w-6xl mb-8 flex justify-end">
+            <button onclick="creaNuovaUtenza()" class="glass px-6 py-3 rounded-xl border-dashed border-red-500/30 text-red-400 hover:text-white hover:bg-red-500/20 text-xs font-bold uppercase tracking-wider transition">
+                ✨ Inizializza Nuova Utenza / ASD
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full max-w-6xl mb-12" id="sezioni-config">
+            <div class="glass p-8 rounded-[2rem] lg:col-span-7 flex flex-col justify-between" id="card-configurazione">
+                <div>
+                    <h3 class="text-xl font-bold text-white mb-6 border-b border-white/10 pb-4">Configurazione ASD e Logo</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="text" id="cfg-nome" placeholder="Nome ASD" class="bg-slate-900 p-3 rounded-lg border border-white/10 text-white focus:border-amber-400 outline-none">
+                        <input type="text" id="cfg-cf" placeholder="Codice Fiscale / PIVA" class="bg-slate-900 p-3 rounded-lg border border-white/10 text-white focus:border-amber-400 outline-none">
+                        <input type="text" id="cfg-via" placeholder="Via e Numero Civico" class="bg-slate-900 p-3 rounded-lg border border-white/10 text-white focus:border-amber-400 outline-none">
+                        <input type="text" id="cfg-citta" placeholder="Città" class="bg-slate-900 p-3 rounded-lg border border-white/10 text-white focus:border-amber-400 outline-none">
+                        <div class="col-span-2">
+                            <label class="block text-xs font-bold text-slate-400 mb-1 uppercase">Discipline Praticate</label>
+                            <input type="text" id="cfg-discipline" placeholder="ES. Karate, Kata, Kumite" class="w-full bg-slate-900 p-3 rounded-lg border border-white/10 text-white focus:border-amber-400 outline-none">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Carica Logo ASD</label>
+                            <input type="file" id="cfg-logo-input" accept="image/*" class="text-sm text-slate-400">
+                        </div>
+                    </div>
+                </div>
+                <button onclick="salvaConfig()" class="w-full mt-6 bg-amber-500 text-black font-black py-3 rounded-xl hover:bg-amber-400 transition">SALVA CONFIGURAZIONE</button>
+            </div>
+
+            <div class="glass p-8 rounded-[2rem] lg:col-span-5 flex flex-col justify-between border-dashed border-amber-500/20">
+                <div>
+                    <h3 class="text-xl font-bold text-amber-400 mb-6 border-b border-white/10 pb-4">Ripristina Backup Dati</h3>
+                    <div class="bg-slate-900/50 p-6 rounded-xl border border-white/10">
+                        <label class="block text-xs font-bold text-slate-400 mb-2 uppercase">File Backup (.json)</label>
+                        <input type="file" id="import-backup-input" accept=".json" class="text-sm text-slate-300">
+                    </div>
+                </div>
+                <button onclick="importaBackup()" class="w-full mt-6 bg-emerald-600 text-white font-black py-3 rounded-xl hover:bg-emerald-500 transition uppercase">Importa Backup Dati</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =========================================================================
+        // TABELLA UTENTI AUTORIZZATI
+        // Per bloccare un utente, basta cambiare "attivo: true" in "attivo: false"
+        // =========================================================================
+        const DATABASE_UTENTI = {
+            "MASTER-IKSA-2026": { nome: "Amministratore Master", ruolo: "master", attivo: true, scadenza: "2099-12-31" },
+            "IKSA-PALERMO-1":   { nome: "Sede Palermo 1", ruolo: "standard", attivo: true, scadenza: "2026-12-31" },
+            "IKSA-PALERMO-2":   { nome: "Sede Palermo 2", ruolo: "standard", attivo: false, scadenza: "2026-08-30" }, // BLOCCATO
+            "IKSA2026":         { nome: "ASD IKSA Standard", ruolo: "standard", attivo: true, scadenza: "2026-12-31" }
+        };
+
+        function init() {
+            const utenteCorrente = localStorage.getItem('asd_utente_corrente');
+            const sessioneAttiva = localStorage.getItem('asd_sessione_attiva');
+
+            // Controllo validità dell'utente memorizzato
+            if (!utenteCorrente || sessioneAttiva !== "true" || !DATABASE_UTENTI[utenteCorrente] || !DATABASE_UTENTI[utenteCorrente].attivo) {
+                effettuaLogoutForzato();
+                return;
+            }
+
+            mostraDashboard();
+        }
+
+        function effettuaLogoutForzato(messaggio) {
+            localStorage.removeItem('asd_sessione_attiva');
+            localStorage.removeItem('asd_utente_corrente');
+            document.getElementById('dashboard-container').classList.add('hidden');
+            document.getElementById('login-container').classList.remove('hidden');
+            
+            if (messaggio) {
+                document.getElementById('error-msg').innerText = messaggio;
+            }
+        }
+
+        function verificaAccesso(event) {
+            event.preventDefault();
+            const codice = document.getElementById('codice-input').value.trim().toUpperCase();
+            const errorMsg = document.getElementById('error-msg');
+
+            const utenteInfo = DATABASE_UTENTI[codice];
+
+            if (!utenteInfo) {
+                errorMsg.innerText = "CODICE NON VALIDO. Verificare le credenziali.";
+                return;
+            }
+
+            if (!utenteInfo.attivo) {
+                errorMsg.innerText = "ACCESSO REVOCATO: L'utenza è stata disattivata o la licenza è scaduta.";
+                return;
+            }
+
+            // Accesso Riuscito
+            errorMsg.innerText = "";
+            localStorage.setItem('asd_utente_corrente', codice);
+            localStorage.setItem('asd_sessione_attiva', 'true');
+            mostraDashboard();
+        }
+
+        function mostraDashboard() {
+            const utenteCorrente = localStorage.getItem('asd_utente_corrente') || '';
+            const utenteInfo = DATABASE_UTENTI[utenteCorrente];
+
+            // Re-check di sicurezza
+            if (!utenteInfo || !utenteInfo.attivo) {
+                effettuaLogoutForzato("Sessione non valida o scaduta.");
+                return;
+            }
+
+            document.getElementById('login-container').classList.add('hidden');
+            document.getElementById('dashboard-container').classList.remove('hidden');
+
+            document.getElementById('utente-connesso-badge').innerText = `Utente Connesso: ${utenteInfo.nome} (${utenteCorrente})`;
+            document.getElementById('scadenza-utente-badge').innerText = `Scadenza Licenza: ${utenteInfo.scadenza}`;
+
+            // Se è il Master, mostra il pannello di controllo utenti
+            if (utenteInfo.ruolo === 'master') {
+                document.getElementById('sezione-master-utenze').classList.remove('hidden');
+                generaPannelloMaster();
+            } else {
+                document.getElementById('sezione-master-utenze').classList.add('hidden');
+            }
+
+            // Caricamento dati di configurazione
+            const config = JSON.parse(localStorage.getItem('asd_config')) || {};
+            const logoBox = document.getElementById('main-logo');
+
+            if (config.logo) {
+                logoBox.innerHTML = `<img src="${config.logo}" class="w-full h-full object-cover rounded-[2.3rem]">`;
+                logoBox.classList.remove('bg-orange-500');
+            }
+            if (config.nome) document.getElementById('main-title').innerText = config.nome;
+            if (config.via) document.getElementById('main-sub').innerText = `${config.citta || ''} • ${config.via}`;
+            if (config.discipline) document.getElementById('main-disciplines').innerText = `Discipline: ${config.discipline}`;
+            
+            document.getElementById('cfg-nome').value = config.nome || '';
+            document.getElementById('cfg-cf').value = config.cf || '';
+            document.getElementById('cfg-via').value = config.via || '';
+            document.getElementById('cfg-citta').value = config.citta || '';
+            document.getElementById('cfg-discipline').value = config.discipline || '';
+        }
+
+        function generaPannelloMaster() {
+            const container = document.getElementById('lista-utenti-master');
+            container.innerHTML = '';
+
+            Object.keys(DATABASE_UTENTI).forEach(codice => {
+                const u = DATABASE_UTENTI[codice];
+                const statoColore = u.attivo ? 'text-emerald-400' : 'text-red-500';
+                const statoTesto = u.attivo ? 'ATTIVO' : 'DISATTIVATO / BLOCCATO';
+
+                const html = `
+                    <div class="bg-slate-900/60 p-4 rounded-xl border border-white/10 flex flex-col justify-between">
+                        <div>
+                            <p class="text-amber-400 font-bold uppercase tracking-wider">${u.nome}</p>
+                            <p class="text-slate-300 font-mono text-[11px] mt-1">Codice: <strong>${codice}</strong></p>
+                            <p class="text-slate-400 text-[10px] mt-1">Scadenza: ${u.scadenza}</p>
+                        </div>
+                        <div class="mt-3 pt-2 border-t border-white/5 flex justify-between items-center">
+                            <span class="font-bold ${statoColore} text-[10px]">${statoTesto}</span>
+                            <span class="text-slate-500 text-[9px] uppercase">${u.ruolo}</span>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += html;
+            });
+        }
+
+        function logout() {
+            effettuaLogoutForzato("Disconnessione effettuata con successo.");
+        }
+
+        function salvaConfig() {
+            const fileInput = document.getElementById('cfg-logo-input');
+            const reader = new FileReader();
+            
+            const salvaInLocalStorage = (logoData) => {
+                const configObj = {
+                    nome: document.getElementById('cfg-nome').value,
+                    cf: document.getElementById('cfg-cf').value,
+                    via: document.getElementById('cfg-via').value,
+                    citta: document.getElementById('cfg-citta').value,
+                    discipline: document.getElementById('cfg-discipline').value,
+                    logo: logoData
+                };
+                localStorage.setItem('asd_config', JSON.stringify(configObj));
+                location.reload();
+            };
+
+            if (fileInput.files && fileInput.files[0]) {
+                reader.onload = (e) => salvaInLocalStorage(e.target.result);
+                reader.readAsDataURL(fileInput.files[0]);
+            } else {
+                const vecchia = JSON.parse(localStorage.getItem('asd_config')) || {};
+                salvaInLocalStorage(vecchia.logo || null);
+            }
+        }
+
+        function sincronizzaEBackup() {
+            const chiavi = [
+                'asd_config',
+                'asd_soci',
+                'asd_pagamenti',
+                'asd_presenze',
+                'asd_collaboratori',
+                'asd_chiusure_collaboratori',
+                'asd_info',
+                'asd_collaboratori_tecnici',
+                'asd_debiti',
+                'asd_volontari',
+                'asd_partite',
+                'asd_cinture_gare'
+            ];
+            
+            const datiSalvati = {};
+            chiavi.forEach(chiave => {
+                datiSalvati[chiave] = localStorage.getItem(chiave);
+            });
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(datiSalvati, null, 2));
+            const dl = document.createElement('a');
+            dl.setAttribute("href", dataStr);
+            dl.setAttribute("download", "backup_asd_completo.json");
+            document.body.appendChild(dl);
+            dl.click();
+            dl.remove();
+        }
+
+        function importaBackup() {
+            const fileInput = document.getElementById('import-backup-input');
+            if (!fileInput.files[0]) return alert("Seleziona un file JSON valido.");
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const dati = JSON.parse(e.target.result);
+                    Object.keys(dati).forEach(k => {
+                        if (dati[k] !== null) {
+                            localStorage.setItem(k, dati[k]);
+                        }
+                    });
+                    alert("Backup ripristinato con successo!");
+                    location.reload();
+                } catch(err) {
+                    alert("Errore durante la lettura del file di backup.");
+                }
+            };
+            reader.readAsText(fileInput.files[0]);
+        }
+
+        function creaNuovaUtenza() {
+            if (confirm("Sei sicuro di voler azzerare tutti i dati del gestionale?")) { 
+                localStorage.clear(); 
+                location.reload(); 
+            }
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
