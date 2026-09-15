@@ -3,11 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Blocco della cache per forzare il download della versione più recente -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>ASD IKSA - ACCESSO E DASHBOARD</title>
+
+    <!-- 1. BLOCCO DI SICUREZZA ISTANTANEO (Eseguito prima di caricare la pagina) -->
+    <script>
+        (function BLOCCO_DI_SICUREZZA() {
+            // Elenco dei codici utente che vuoi BLOCCARE
+            const UTENTI_BLOCCATI = ["IKSA2026", "IKSA-PALERMO-2"];
+            
+            const utenteInMemoria = localStorage.getItem('asd_utente_corrente');
+
+            // Se l'utente salvato sul telefono/PC è tra quelli bloccati, cancella la sessione all'istante
+            if (utenteInMemoria && UTENTI_BLOCCATI.includes(utenteInMemoria.trim().toUpperCase())) {
+                localStorage.removeItem('asd_sessione_attiva');
+                localStorage.removeItem('asd_utente_corrente');
+            }
+        })();
+    </script>
+
     <script src="https://cdn.tailwindcss.com?v=3.0"></script>
     <style>
         body { background: #0b1120; color: white; min-height: 100vh; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; }
@@ -172,7 +188,6 @@
             const utenteCorrente = localStorage.getItem('asd_utente_corrente');
             const sessioneAttiva = localStorage.getItem('asd_sessione_attiva');
 
-            // Se l'utente salvato in memoria è disattivato o non valido, espulsione immediata
             if (!utenteCorrente || sessioneAttiva !== "true" || !DATABASE_UTENTI[utenteCorrente] || DATABASE_UTENTI[utenteCorrente].attivo !== true) {
                 effettuaLogoutForzato("ACCESSO REVOCATO: L'utenza è stata disattivata.");
                 return;
