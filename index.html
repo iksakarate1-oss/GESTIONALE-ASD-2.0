@@ -164,6 +164,18 @@
             "IKSA2026":         { nome: "ASD IKSA Standard", ruolo: "standard", attivo: false, scadenza: "2026-12-31" } // BLOCCATO
         };
 
+        // CONTROLLO ATTIVO IN TEMPO REALE
+        function verificaPermessoUtenza() {
+            const utenteCorrente = localStorage.getItem('asd_utente_corrente');
+            const sessioneAttiva = localStorage.getItem('asd_sessione_attiva');
+
+            if (utenteCorrente && sessioneAttiva === "true") {
+                if (!DATABASE_UTENTI[utenteCorrente] || !DATABASE_UTENTI[utenteCorrente].attivo) {
+                    effettuaLogoutForzato("ACCESSO REVOCATO: L'utenza è stata disattivata.");
+                }
+            }
+        }
+
         function init() {
             const utenteCorrente = localStorage.getItem('asd_utente_corrente');
             const sessioneAttiva = localStorage.getItem('asd_sessione_attiva');
@@ -175,6 +187,10 @@
             }
 
             mostraDashboard();
+
+            // Attiva il controllo continuo ogni 3 secondi e a ogni interazione sullo schermo
+            setInterval(verificaPermessoUtenza, 3000);
+            document.addEventListener('click', verificaPermessoUtenza);
         }
 
         function effettuaLogoutForzato(messaggio) {
@@ -210,6 +226,9 @@
             localStorage.setItem('asd_utente_corrente', codice);
             localStorage.setItem('asd_sessione_attiva', 'true');
             mostraDashboard();
+            
+            setInterval(verificaPermessoUtenza, 3000);
+            document.addEventListener('click', verificaPermessoUtenza);
         }
 
         function mostraDashboard() {
