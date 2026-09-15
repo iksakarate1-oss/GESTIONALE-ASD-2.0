@@ -70,20 +70,31 @@
             "MASTER-IKSA-2026": { nome: "Amministratore Master", ruolo: "master", attivo: true, scadenza: "2099-12-31" },
             "IKSA-PALERMO-1":   { nome: "Sede Palermo 1", ruolo: "standard", attivo: true, scadenza: "2026-12-31" },
             "IKSA-PALERMO-2":   { nome: "Sede Palermo 2", ruolo: "standard", attivo: false, scadenza: "2026-08-30" },
-            "": { nome: "A.S.D. D'AMATO", ruolo: "standard", attivo: true, scadenza: "2022-09-30" }
+            "GIUSEPPE DAMATO":  { nome: "A.S.D. D'AMATO", ruolo: "standard", attivo: false, scadenza: "2026-09-30" }
         };
 
+        function isLicenzaScaduta(dataScadenzaStr) {
+            if (!dataScadenzaStr) return false;
+            const oggi = new Date();
+            oggi.setHours(0, 0, 0, 0);
+            return oggi > new Date(dataScadenzaStr);
+        }
+
         function init() {
-            // Cerca l'utente nell'URL, in sessionStorage o in localStorage
             const urlParams = new URLSearchParams(window.location.search);
             const userUrl = urlParams.get('user');
 
             let utenteCorrente = userUrl || sessionStorage.getItem('asd_utente_corrente') || localStorage.getItem('asd_utente_corrente');
             if (utenteCorrente) utenteCorrente = utenteCorrente.trim().toUpperCase();
 
-            // Se troviamo un utente valido
-            if (utenteCorrente && DATABASE_UTENTI[utenteCorrente]) {
-                // Sincronizza entrambe le memorie
+            // VERIFICA SE UTENTE ESISTE, È ATTIVO E LICENZA NON SCADUTA
+            if (utenteCorrente && DATABASE_UTENTI[utenteCorrente] && DATABASE_UTENTI[utenteCorrente].attivo === true) {
+                if (isLicenzaScaduta(DATABASE_UTENTI[utenteCorrente].scadenza)) {
+                    alert("Licenza scaduta.");
+                    logout();
+                    return;
+                }
+
                 localStorage.setItem('asd_utente_corrente', utenteCorrente);
                 localStorage.setItem('asd_sessione_v2', 'true');
                 sessionStorage.setItem('asd_utente_corrente', utenteCorrente);
@@ -91,8 +102,8 @@
 
                 caricaDashboard(utenteCorrente);
             } else {
-                // Se non c'è sessione attiva, torna al login SENZA cancellare i dati salvati
-                window.location.href = "login.html";
+                // SE NON ATTIVO O ERRORE, VA AL LOGIN SENZA CANCELLARE IL DATABASE
+                logout();
             }
         }
 
@@ -166,6 +177,14 @@
             dl.click();
             dl.remove();
         }
+
+        // Controllo automatico in background ogni 60 secondi
+        setInterval(function() {
+            const utenteCorrente = localStorage.getItem('asd_utente_corrente') || sessionStorage.getItem('asd_utente_corrente');
+            if (!utenteCorrente || !DATABASE_UTENTI[utenteCorrente] || DATABASE_UTENTI[utenteCorrente].attivo !== true || isLicenzaScaduta(DATABASE_UTENTI[utenteCorrente].scadenza)) {
+                logout();
+            }
+        }, 60000);
 
         init();
     </script>
