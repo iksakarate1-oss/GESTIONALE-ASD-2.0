@@ -3,26 +3,171 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aggiornamento di Sicurezza</title>
-    <script>
-        // 1. Cancella del tutto la memoria salvata nell'iPhone/browser
-        localStorage.clear();
-        sessionStorage.clear();
+    <title>GESTIONALE 2.0 - DASHBOARD</title>
+    <script src="https://cdn.tailwindcss.com?v=3.0"></script>
+    <style>
+        body { background: #0b1120; color: white; min-height: 100vh; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .glass { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-8px); border-color: rgba(251, 191, 36, 0.4); background: rgba(30, 41, 59, 0.6); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+        .logo-box { box-shadow: 0 0 30px rgba(245, 158, 11, 0.2); overflow: hidden; }
+    </style>
+</head>
+<body class="p-6 w-full">
 
-        // 2. Elimina eventuali Service Worker o Web App salvate in memoria
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                for (let registration of registrations) {
-                    registration.unregister();
-                }
-            });
+    <div id="dashboard-container" class="w-full flex flex-col items-center">
+        <div class="text-center mb-12 mt-6">
+            <div id="main-logo" class="logo-box w-auto h-28 px-6 mx-auto mb-6 bg-orange-500 rounded-[2.5rem] flex items-center justify-center font-black italic text-3xl border-4 border-white/10 shadow-2xl">GEST2.0</div>
+            <h1 id="main-title" class="text-5xl font-black italic tracking-tighter text-amber-400 mb-2">GESTIONALE 2.0</h1>
+            <div id="main-sub-container" class="text-slate-500 text-xs font-bold uppercase tracking-[0.25em] max-w-2xl mx-auto space-y-2">
+                <p id="main-sub">Italia • Sistema Gestionale 2026</p>
+                <p id="main-disciplines" class="text-amber-500/80 text-[10px] tracking-[0.2em] italic"></p>
+            </div>
+            <div class="mt-4 space-y-2">
+                <div><span id="utente-connesso-badge" class="inline-block bg-amber-500/20 text-amber-400 text-xs px-3 py-1 rounded-full font-bold"></span></div>
+                <div><span id="scadenza-utente-badge" class="inline-block bg-slate-800 text-slate-300 text-xs px-3 py-1 rounded-full border border-white/10"></span></div>
+                <div class="pt-2"><button type="button" onclick="logout()" class="text-xs text-slate-400 hover:text-red-400 underline uppercase tracking-wider">Disconnetti / Cambia Utente</button></div>
+            </div>
+        </div>
+
+        <!-- Griglia Principale Navigazione -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl w-full mb-12">
+            <a href="tesserati.html" class="glass p-8 rounded-[2.5rem] card-hover text-center group"><div class="text-5xl mb-4">👤</div><h2 class="text-xl font-black uppercase italic text-white group-hover:text-amber-400">Tesserati</h2></a>
+            <a href="contabilita.html" class="glass p-8 rounded-[2.5rem] card-hover text-center group"><div class="text-5xl mb-4">💶</div><h2 class="text-xl font-black uppercase italic text-white group-hover:text-emerald-400">Contabilità</h2></a>
+            <a href="presenze.html" class="glass p-8 rounded-[2.5rem] card-hover text-center group"><div class="text-5xl mb-4">📅</div><h2 class="text-xl font-black uppercase italic text-white group-hover:text-red-500">Presenze</h2></a>
+            <a href="scadenze.html" class="glass p-8 rounded-[2.5rem] card-hover text-center group"><div class="text-5xl mb-4">⏳</div><h2 class="text-xl font-black uppercase italic text-white group-hover:text-amber-400">Scadenze</h2></a>
+            <a href="collaboratori.html" class="glass p-8 rounded-[2.5rem] card-hover text-center group"><div class="text-5xl mb-4">🤝</div><h2 class="text-xl font-black uppercase italic text-white group-hover:text-amber-400">Collaboratori</h2></a>
+            <a href="volontari.html" class="glass p-8 rounded-[2.5rem] card-hover text-center group"><div class="text-5xl mb-4">🛡️</div><h2 class="text-xl font-black uppercase italic text-white group-hover:text-blue-400">Volontari</h2></a>
+            <a href="partite.html" class="glass p-8 rounded-[2.5rem] card-hover text-center group"><div class="text-5xl mb-4">⚔️</div><h2 class="text-xl font-black uppercase italic text-white group-hover:text-purple-400">Partite Aperte</h2></a>
+            <a href="cinture_gare.html" class="glass p-8 rounded-[2.5rem] card-hover text-center group"><div class="text-5xl mb-4">🥋</div><h2 class="text-xl font-black uppercase italic text-white group-hover:text-amber-400">Gradi, Esami & Gare</h2></a>
+            <a href="documenti.html" class="glass p-8 rounded-[2.5rem] card-hover text-center group"><div class="text-5xl mb-4">📄</div><h2 class="text-xl font-black uppercase italic text-white group-hover:text-cyan-400">Documenti</h2></a>
+            <a href="personalizzabile.html" class="glass p-8 rounded-[2.5rem] card-hover text-center group"><div class="text-5xl mb-4">⚙️</div><h2 class="text-xl font-black uppercase italic text-white group-hover:text-indigo-400">Personalizzabile</h2></a>
+            <div onclick="sincronizzaEBackup()" class="glass p-8 rounded-[2.5rem] card-hover text-center group cursor-pointer border border-dashed border-amber-500/30">
+                <div class="text-5xl mb-4">🔄</div>
+                <h2 class="text-xl font-black uppercase italic text-white group-hover:text-amber-500">Backup JSON</h2>
+            </div>
+        </div>
+
+        <!-- Sezione Configurazione -->
+        <div class="glass p-8 rounded-[2rem] max-w-6xl w-full mb-12">
+            <h3 class="text-xl font-bold text-white mb-6 border-b border-white/10 pb-4">Configurazione ASD e Logo</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input type="text" id="cfg-nome" placeholder="Nome ASD" class="bg-slate-900 p-3 rounded-lg border border-white/10 text-white outline-none">
+                <input type="text" id="cfg-cf" placeholder="Codice Fiscale / PIVA" class="bg-slate-900 p-3 rounded-lg border border-white/10 text-white outline-none">
+                <input type="text" id="cfg-via" placeholder="Via e Numero Civico" class="bg-slate-900 p-3 rounded-lg border border-white/10 text-white outline-none">
+                <input type="text" id="cfg-citta" placeholder="Città" class="bg-slate-900 p-3 rounded-lg border border-white/10 text-white outline-none">
+                <input type="text" id="cfg-discipline" placeholder="ES. Karate, Kata, Kumite" class="bg-slate-900 p-3 rounded-lg border border-white/10 text-white outline-none md:col-span-2">
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Carica Logo ASD</label>
+                    <input type="file" id="cfg-logo-input" accept="image/*" class="text-sm text-slate-400">
+                </div>
+            </div>
+            <button type="button" onclick="salvaConfig()" class="w-full mt-6 bg-amber-500 text-black font-black py-3 rounded-xl hover:bg-amber-400 transition">SALVA CONFIGURAZIONE</button>
+        </div>
+    </div>
+
+    <script>
+        const DATABASE_UTENTI = {
+            "MASTER-IKSA-2026": { nome: "Amministratore Master", ruolo: "master", attivo: true, scadenza: "2099-12-31" },
+            "IKSA-PALERMO-1":   { nome: "Sede Palermo 1", ruolo: "standard", attivo: true, scadenza: "2026-12-31" },
+            "IKSA-PALERMO-2":   { nome: "Sede Palermo 2", ruolo: "standard", attivo: false, scadenza: "2026-08-30" },
+            "GIUSEPPE D'AMATO": { nome: "A.S.D. D'AMATO", ruolo: "standard", attivo: true, scadenza: "2026-09-30" }
+        };
+
+        function init() {
+            // Cerca l'utente nell'URL, in sessionStorage o in localStorage
+            const urlParams = new URLSearchParams(window.location.search);
+            const userUrl = urlParams.get('user');
+
+            let utenteCorrente = userUrl || sessionStorage.getItem('asd_utente_corrente') || localStorage.getItem('asd_utente_corrente');
+            if (utenteCorrente) utenteCorrente = utenteCorrente.trim().toUpperCase();
+
+            // Se troviamo un utente valido
+            if (utenteCorrente && DATABASE_UTENTI[utenteCorrente]) {
+                // Sincronizza entrambe le memorie
+                localStorage.setItem('asd_utente_corrente', utenteCorrente);
+                localStorage.setItem('asd_sessione_v2', 'true');
+                sessionStorage.setItem('asd_utente_corrente', utenteCorrente);
+                sessionStorage.setItem('asd_sessione_v2', 'true');
+
+                caricaDashboard(utenteCorrente);
+            } else {
+                // Se non c'è sessione attiva, torna al login SENZA cancellare i dati salvati
+                window.location.href = "login.html";
+            }
         }
 
-        // 3. Redirige forzatamente verso la nuova pagina di login bypassando la cache
-        window.location.href = "login.html?v=" + new Date().getTime();
+        function caricaDashboard(codiceUtente) {
+            const utenteInfo = DATABASE_UTENTI[codiceUtente];
+            document.getElementById('utente-connesso-badge').innerText = `Utente: ${utenteInfo.nome} (${codiceUtente})`;
+            document.getElementById('scadenza-utente-badge').innerText = `Scadenza: ${utenteInfo.scadenza}`;
+
+            const config = JSON.parse(localStorage.getItem('asd_config')) || {};
+            const logoBox = document.getElementById('main-logo');
+
+            if (config.logo) {
+                logoBox.innerHTML = `<img src="${config.logo}" class="w-full h-full object-cover rounded-[2.3rem]">`;
+                logoBox.classList.remove('bg-orange-500');
+            }
+            if (config.nome) document.getElementById('main-title').innerText = config.nome;
+            if (config.via) document.getElementById('main-sub').innerText = `${config.citta || ''} • ${config.via}`;
+            if (config.discipline) document.getElementById('main-disciplines').innerText = `Discipline: ${config.discipline}`;
+            
+            document.getElementById('cfg-nome').value = config.nome || '';
+            document.getElementById('cfg-cf').value = config.cf || '';
+            document.getElementById('cfg-via').value = config.via || '';
+            document.getElementById('cfg-citta').value = config.citta || '';
+            document.getElementById('cfg-discipline').value = config.discipline || '';
+        }
+
+        function salvaConfig() {
+            const fileInput = document.getElementById('cfg-logo-input');
+            const reader = new FileReader();
+
+            const salva = (logoData) => {
+                const configObj = {
+                    nome: document.getElementById('cfg-nome').value,
+                    cf: document.getElementById('cfg-cf').value,
+                    via: document.getElementById('cfg-via').value,
+                    citta: document.getElementById('cfg-citta').value,
+                    discipline: document.getElementById('cfg-discipline').value,
+                    logo: logoData
+                };
+                localStorage.setItem('asd_config', JSON.stringify(configObj));
+                alert("Configurazione salvata con successo!");
+                location.reload();
+            };
+
+            if (fileInput.files && fileInput.files[0]) {
+                reader.onload = (e) => salva(e.target.result);
+                reader.readAsDataURL(fileInput.files[0]);
+            } else {
+                const vecchia = JSON.parse(localStorage.getItem('asd_config')) || {};
+                salva(vecchia.logo || null);
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('asd_sessione_v2');
+            localStorage.removeItem('asd_utente_corrente');
+            sessionStorage.removeItem('asd_sessione_v2');
+            sessionStorage.removeItem('asd_utente_corrente');
+            window.location.href = "login.html";
+        }
+
+        function sincronizzaEBackup() {
+            const chiavi = ['asd_config', 'asd_soci', 'asd_pagamenti', 'asd_presenze', 'asd_collaboratori', 'asd_volontari', 'asd_partite', 'asd_cinture_gare', 'asd_personalizzabile'];
+            const datiSalvati = {};
+            chiavi.forEach(chiave => { datiSalvati[chiave] = localStorage.getItem(chiave); });
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(datiSalvati, null, 2));
+            const dl = document.createElement('a');
+            dl.setAttribute("href", dataStr);
+            dl.setAttribute("download", "backup_asd_completo.json");
+            document.body.appendChild(dl);
+            dl.click();
+            dl.remove();
+        }
+
+        init();
     </script>
-</head>
-<body style="background: #0b1120; color: white; display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif;">
-    <p style="text-align: center; font-weight: bold;">Aggiornamento di sicurezza in corso...</p>
 </body>
 </html>
