@@ -7,23 +7,6 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>ASD IKSA - ACCESSO E DASHBOARD</title>
-
-    <!-- 1. BLOCCO DI SICUREZZA ISTANTANEO (Eseguito prima di caricare la pagina) -->
-    <script>
-        (function BLOCCO_DI_SICUREZZA() {
-            // Elenco dei codici utente che vuoi BLOCCARE
-            const UTENTI_BLOCCATI = ["IKSA2026", "IKSA-PALERMO-2"];
-            
-            const utenteInMemoria = localStorage.getItem('asd_utente_corrente');
-
-            // Se l'utente salvato sul telefono/PC è tra quelli bloccati, cancella la sessione all'istante
-            if (utenteInMemoria && UTENTI_BLOCCATI.includes(utenteInMemoria.trim().toUpperCase())) {
-                localStorage.removeItem('asd_sessione_attiva');
-                localStorage.removeItem('asd_utente_corrente');
-            }
-        })();
-    </script>
-
     <script src="https://cdn.tailwindcss.com?v=3.0"></script>
     <style>
         body { background: #0b1120; color: white; min-height: 100vh; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; }
@@ -170,9 +153,11 @@
         const DATABASE_UTENTI = {
             "MASTER-IKSA-2026": { nome: "Amministratore Master", ruolo: "master", attivo: true, scadenza: "2099-12-31" },
             "IKSA-PALERMO-1":   { nome: "Sede Palermo 1", ruolo: "standard", attivo: true, scadenza: "2026-12-31" },
-            "IKSA-PALERMO-2":   { nome: "Sede Palermo 2", ruolo: "standard", attivo: false, scadenza: "2026-08-30" }, // BLOCCATO
-            "IKSA2026":         { nome: "ASD IKSA Standard", ruolo: "standard", attivo: false, scadenza: "2026-12-31" } // BLOCCATO
+            "IKSA-PALERMO-2":   { nome: "Sede Palermo 2", ruolo: "standard", attivo: false, scadenza: "2026-08-30" },
+            "IKSA2026":         { nome: "ASD IKSA Standard", ruolo: "standard", attivo: false, scadenza: "2026-12-31" }
         };
+
+        const UTENTI_BLOCCATI = ["IKSA2026", "IKSA-PALERMO-2"];
 
         function effettuaLogoutForzato(messaggio) {
             localStorage.removeItem('asd_sessione_attiva');
@@ -185,10 +170,11 @@
         }
 
         function init() {
-            const utenteCorrente = localStorage.getItem('asd_utente_corrente');
+            const utenteCorrente = (localStorage.getItem('asd_utente_corrente') || '').trim().toUpperCase();
             const sessioneAttiva = localStorage.getItem('asd_sessione_attiva');
 
-            if (!utenteCorrente || sessioneAttiva !== "true" || !DATABASE_UTENTI[utenteCorrente] || DATABASE_UTENTI[utenteCorrente].attivo !== true) {
+            // CONTROLLO DI SICUREZZA MANDATORIO
+            if (UTENTI_BLOCCATI.includes(utenteCorrente) || !utenteCorrente || sessioneAttiva !== "true" || !DATABASE_UTENTI[utenteCorrente] || DATABASE_UTENTI[utenteCorrente].attivo !== true) {
                 effettuaLogoutForzato("ACCESSO REVOCATO: L'utenza è stata disattivata.");
                 return;
             }
@@ -200,6 +186,12 @@
             event.preventDefault();
             const codice = document.getElementById('codice-input').value.trim().toUpperCase();
             const errorMsg = document.getElementById('error-msg');
+
+            if (UTENTI_BLOCCATI.includes(codice)) {
+                errorMsg.innerText = "ACCESSO REVOCATO: L'utenza è stata disattivata.";
+                return;
+            }
+
             const utenteInfo = DATABASE_UTENTI[codice];
 
             if (!utenteInfo) {
@@ -219,7 +211,13 @@
         }
 
         function mostraDashboard() {
-            const utenteCorrente = localStorage.getItem('asd_utente_corrente') || '';
+            const utenteCorrente = (localStorage.getItem('asd_utente_corrente') || '').trim().toUpperCase();
+            
+            if (UTENTI_BLOCCATI.includes(utenteCorrente)) {
+                effettuaLogoutForzato("ACCESSO REVOCATO: L'utenza è stata disattivata.");
+                return;
+            }
+
             const utenteInfo = DATABASE_UTENTI[utenteCorrente];
 
             if (!utenteInfo || !utenteInfo.attivo) {
@@ -351,7 +349,8 @@
             }
         }
 
-        window.onload = init;
+        // Avvio immediato all'apertura
+        init();
     </script>
 </body>
 </html>
