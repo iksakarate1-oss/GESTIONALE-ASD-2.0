@@ -57,9 +57,7 @@
         <div id="sezione-master-utenze" class="w-full max-w-6xl mb-8 hidden">
             <div class="glass p-6 rounded-[2rem] border border-amber-500/30">
                 <h3 class="text-lg font-bold text-amber-400 mb-4 uppercase tracking-wider">Pannello Controllo Utenti (Area Master)</h3>
-                <div id="lista-utenti-master" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
-                    <!-- Generato dinamicamente dallo script -->
-                </div>
+                <div id="lista-utenti-master" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs"></div>
             </div>
         </div>
 
@@ -153,10 +151,6 @@
     </div>
 
     <script>
-        // =========================================================================
-        // TABELLA UTENTI AUTORIZZATI
-        // Per bloccare un utente, basta cambiare "attivo: true" in "attivo: false"
-        // =========================================================================
         const DATABASE_UTENTI = {
             "MASTER-IKSA-2026": { nome: "Amministratore Master", ruolo: "master", attivo: true, scadenza: "2099-12-31" },
             "IKSA-PALERMO-1":   { nome: "Sede Palermo 1", ruolo: "standard", attivo: true, scadenza: "2026-12-31" },
@@ -164,15 +158,13 @@
             "IKSA2026":         { nome: "ASD IKSA Standard", ruolo: "standard", attivo: false, scadenza: "2026-12-31" } // BLOCCATO
         };
 
-        // CONTROLLO ATTIVO IN TEMPO REALE
-        function verificaPermessoUtenza() {
-            const utenteCorrente = localStorage.getItem('asd_utente_corrente');
-            const sessioneAttiva = localStorage.getItem('asd_sessione_attiva');
-
-            if (utenteCorrente && sessioneAttiva === "true") {
-                if (!DATABASE_UTENTI[utenteCorrente] || !DATABASE_UTENTI[utenteCorrente].attivo) {
-                    effettuaLogoutForzato("ACCESSO REVOCATO: L'utenza è stata disattivata.");
-                }
+        function effettuaLogoutForzato(messaggio) {
+            localStorage.removeItem('asd_sessione_attiva');
+            localStorage.removeItem('asd_utente_corrente');
+            document.getElementById('dashboard-container').classList.add('hidden');
+            document.getElementById('login-container').classList.remove('hidden');
+            if (messaggio) {
+                document.getElementById('error-msg').innerText = messaggio;
             }
         }
 
@@ -180,35 +172,19 @@
             const utenteCorrente = localStorage.getItem('asd_utente_corrente');
             const sessioneAttiva = localStorage.getItem('asd_sessione_attiva');
 
-            // Controllo validità dell'utente memorizzato
-            if (!utenteCorrente || sessioneAttiva !== "true" || !DATABASE_UTENTI[utenteCorrente] || !DATABASE_UTENTI[utenteCorrente].attivo) {
-                effettuaLogoutForzato("ACCESSO REVOCATO: L'utenza è stata disattivata o non esiste.");
+            // Se l'utente salvato in memoria è disattivato o non valido, espulsione immediata
+            if (!utenteCorrente || sessioneAttiva !== "true" || !DATABASE_UTENTI[utenteCorrente] || DATABASE_UTENTI[utenteCorrente].attivo !== true) {
+                effettuaLogoutForzato("ACCESSO REVOCATO: L'utenza è stata disattivata.");
                 return;
             }
 
             mostraDashboard();
-
-            // Attiva il controllo continuo ogni 3 secondi e a ogni interazione sullo schermo
-            setInterval(verificaPermessoUtenza, 3000);
-            document.addEventListener('click', verificaPermessoUtenza);
-        }
-
-        function effettuaLogoutForzato(messaggio) {
-            localStorage.removeItem('asd_sessione_attiva');
-            localStorage.removeItem('asd_utente_corrente');
-            document.getElementById('dashboard-container').classList.add('hidden');
-            document.getElementById('login-container').classList.remove('hidden');
-            
-            if (messaggio) {
-                document.getElementById('error-msg').innerText = messaggio;
-            }
         }
 
         function verificaAccesso(event) {
             event.preventDefault();
             const codice = document.getElementById('codice-input').value.trim().toUpperCase();
             const errorMsg = document.getElementById('error-msg');
-
             const utenteInfo = DATABASE_UTENTI[codice];
 
             if (!utenteInfo) {
@@ -217,27 +193,22 @@
             }
 
             if (!utenteInfo.attivo) {
-                errorMsg.innerText = "ACCESSO REVOCATO: L'utenza è stata disattivata o la licenza è scaduta.";
+                errorMsg.innerText = "ACCESSO REVOCATO: L'utenza è stata disattivata.";
                 return;
             }
 
-            // Accesso Riuscito
             errorMsg.innerText = "";
             localStorage.setItem('asd_utente_corrente', codice);
             localStorage.setItem('asd_sessione_attiva', 'true');
             mostraDashboard();
-            
-            setInterval(verificaPermessoUtenza, 3000);
-            document.addEventListener('click', verificaPermessoUtenza);
         }
 
         function mostraDashboard() {
             const utenteCorrente = localStorage.getItem('asd_utente_corrente') || '';
             const utenteInfo = DATABASE_UTENTI[utenteCorrente];
 
-            // Re-check di sicurezza
             if (!utenteInfo || !utenteInfo.attivo) {
-                effettuaLogoutForzato("Sessione non valida o scaduta.");
+                effettuaLogoutForzato("Sessione non valida o disattivata.");
                 return;
             }
 
@@ -247,7 +218,6 @@
             document.getElementById('utente-connesso-badge').innerText = `Utente Connesso: ${utenteInfo.nome} (${utenteCorrente})`;
             document.getElementById('scadenza-utente-badge').innerText = `Scadenza Licenza: ${utenteInfo.scadenza}`;
 
-            // Se è il Master, mostra il pannello di controllo utenti
             if (utenteInfo.ruolo === 'master') {
                 document.getElementById('sezione-master-utenze').classList.remove('hidden');
                 generaPannelloMaster();
@@ -255,7 +225,6 @@
                 document.getElementById('sezione-master-utenze').classList.add('hidden');
             }
 
-            // Caricamento dati di configurazione
             const config = JSON.parse(localStorage.getItem('asd_config')) || {};
             const logoBox = document.getElementById('main-logo');
 
@@ -331,26 +300,9 @@
         }
 
         function sincronizzaEBackup() {
-            const chiavi = [
-                'asd_config',
-                'asd_soci',
-                'asd_pagamenti',
-                'asd_presenze',
-                'asd_collaboratori',
-                'asd_chiusure_collaboratori',
-                'asd_info',
-                'asd_collaboratori_tecnici',
-                'asd_debiti',
-                'asd_volontari',
-                'asd_partite',
-                'asd_cinture_gare'
-            ];
-            
+            const chiavi = ['asd_config', 'asd_soci', 'asd_pagamenti', 'asd_presenze', 'asd_collaboratori', 'asd_chiusure_collaboratori', 'asd_info', 'asd_collaboratori_tecnici', 'asd_debiti', 'asd_volontari', 'asd_partite', 'asd_cinture_gare'];
             const datiSalvati = {};
-            chiavi.forEach(chiave => {
-                datiSalvati[chiave] = localStorage.getItem(chiave);
-            });
-
+            chiavi.forEach(chiave => { datiSalvati[chiave] = localStorage.getItem(chiave); });
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(datiSalvati, null, 2));
             const dl = document.createElement('a');
             dl.setAttribute("href", dataStr);
@@ -367,11 +319,7 @@
             reader.onload = (e) => {
                 try {
                     const dati = JSON.parse(e.target.result);
-                    Object.keys(dati).forEach(k => {
-                        if (dati[k] !== null) {
-                            localStorage.setItem(k, dati[k]);
-                        }
-                    });
+                    Object.keys(dati).forEach(k => { if (dati[k] !== null) localStorage.setItem(k, dati[k]); });
                     alert("Backup ripristinato con successo!");
                     location.reload();
                 } catch(err) {
