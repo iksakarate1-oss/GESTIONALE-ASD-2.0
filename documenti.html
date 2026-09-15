@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASD IKSA - Gestione Documenti & Certificati</title>
+    <!-- Caricamento Tailwind CSS da CDN ufficiale -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #0b1120; color: white; min-height: 100vh; font-family: sans-serif; }
+        .glass { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); transition: all 0.3s ease; }
+        .card-hover:hover { border-color: rgba(251, 191, 36, 0.4); background: rgba(30, 41, 59, 0.6); }
+        .logo-box { box-shadow: 0 0 20px rgba(245, 158, 11, 0.2); overflow: hidden; }
+        /* Style custom per tab attivo */
+        .tab-btn.active { background-color: rgba(245, 158, 11, 0.2); border-color: #f59e0b; color: #fbbf24; }
+    </style>
+</head>
+<body class="p-4 md:p-8 max-w-7xl mx-auto">
+
+    <!-- Header & Navigation -->
+    <div class="flex flex-col md:flex-row items-center justify-between gap-4 mb-8 pb-6 border-b border-white/10">
+        <div class="flex items-center gap-4">
+            <div id="app-logo" class="logo-box w-14 h-14 bg-orange-500 rounded-2xl flex items-center justify-center font-black italic text-xl border-2 border-white/10">IK</div>
+            <div>
+                <h1 id="app-title" class="text-2xl md:text-3xl font-black italic tracking-tighter text-amber-400">ASD IKSA</h1>
+                <p class="text-xs text-slate-400 uppercase tracking-widest font-bold">Documentazione Ufficiale & Certificati Medici</p>
+            </div>
+        </div>
+        
+        <a href="index.html" class="glass px-5 py-2.5 rounded-xl border border-white/10 hover:border-amber-400 text-slate-300 hover:text-white text-sm font-bold flex items-center gap-2 transition">
+            <span>⬅️</span> Torna alla Dashboard
+        </a>
+    </div>
+
+    <!-- Statistiche Rapide -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div class="glass p-5 rounded-2xl border-l-4 border-l-amber-400">
+            <p class="text-xs text-slate-400 font-bold uppercase">Totale Documenti</p>
+            <h3 id="stat-totale" class="text-2xl font-black text-white mt-1">0</h3>
+        </div>
+        <div class="glass p-5 rounded-2xl border-l-4 border-l-blue-400">
+            <p class="text-xs text-slate-400 font-bold uppercase">Documentazione ASD</p>
+            <h3 id="stat-asd" class="text-2xl font-black text-blue-400 mt-1">0</h3>
+        </div>
+        <div class="glass p-5 rounded-2xl border-l-4 border-l-emerald-400">
+            <p class="text-xs text-slate-400 font-bold uppercase">Certificati Validi</p>
+            <h3 id="stat-cert-validi" class="text-2xl font-black text-emerald-400 mt-1">0</h3>
+        </div>
+        <div class="glass p-5 rounded-2xl border-l-4 border-l-rose-500">
+            <p class="text-xs text-slate-400 font-bold uppercase">Certificati In Scadenza/Scaduti</p>
+            <h3 id="stat-cert-scaduti" class="text-2xl font-black text-rose-500 mt-1">0</h3>
+        </div>
+    </div>
+
+    <!-- Tab Selezione Sezione -->
+    <div class="flex border-b border-white/10 mb-8 overflow-x-auto">
+        <button id="tab-btn-certificati" onclick="switchTab('certificati')" class="tab-btn active px-6 py-3 font-bold text-sm border-b-2 border-transparent transition flex items-center gap-2 whitespace-nowrap">
+            <span>🏥</span> Certificati Medici Tesserati
+        </button>
+        <button id="tab-btn-asd" onclick="switchTab('asd')" class="tab-btn px-6 py-3 font-bold text-sm border-b-2 border-transparent text-slate-400 hover:text-white transition flex items-center gap-2 whitespace-nowrap">
+            <span>📜</span> Documentazione Obbligatoria ASD
+        </button>
+    </div>
+
+    <!-- SEZIONE 1: CERTIFICATI MEDICI -->
+    <div id="tab-certificati" class="space-y-8">
+        <!-- Form Caricamento Certificato -->
+        <div class="glass p-6 md:p-8 rounded-3xl border border-white/10">
+            <h2 class="text-xl font-bold text-amber-400 mb-6 flex items-center gap-2">
+                <span>📂</span> Carica / Aggiorna Certificato Medico
+            </h2>
+            
+            <form id="form-certificato" onsubmit="salvaCertificato(event)" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1 uppercase">Tesserato / Atleta *</label>
+                    <select id="cert-socio" required class="w-full bg-slate-900 p-3 rounded-xl border border-white/10 text-white focus:border-amber-400 outline-none">
+                        <option value="">-- Seleziona Tesserato --</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1 uppercase">Tipo Certificato *</label>
+                    <select id="cert-tipo" required class="w-full bg-slate-900 p-3 rounded-xl border border-white/10 text-white focus:border-amber-400 outline-none">
+                        <option value="Non Agonistico">Non Agonistico</option>
+                        <option value="Agonistico">Agonistico</option>
+                        <option value="Alta Intensità / Speciale">Alta Intensità / Speciale</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1 uppercase">Data Scadenza *</label>
+                    <input type="date" id="cert-scadenza" required class="w-full bg-slate-900 p-3 rounded-xl border border-white/10 text-white focus:border-amber-400 outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1 uppercase">Medico / Struttura Erogante</label>
+                    <input type="text" id="cert-medico" placeholder="Es. Dott. Rossi / Centro Medicina dello Sport" class="w-full bg-slate-900 p-3 rounded-xl border border-white/10 text-white focus:border-amber-400 outline-none">
+                </div>
+
+                <div class="lg:col-span-2">
+                    <label class="block text-xs font-bold text-slate-400 mb-1 uppercase">Allegato (Foto o PDF) *</label>
+                    <input type="file" id="cert-file" accept="image/*,.pdf" required class="w-full bg-slate-900 p-2.5 rounded-xl border border-white/10 text-slate-300 text-sm file:mr-4 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:bg-amber-500 file:text-black file:font-bold hover:file:bg-amber-400 cursor-pointer">
+                </div>
+
+                <div class="md:col-span-2 lg:col-span-3 flex justify-end mt-2">
+                    <button type="submit" class="w-full md:w-auto bg-amber-500 hover:bg-amber-400 text-black font-black px-8 py-3 rounded-xl transition shadow-lg">
+                        💾 SALVA CERTIFICATO
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Elenco Certificati Medici -->
+        <div class="glass p-6 md:p-8 rounded-3xl border border-white/10">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <h3 class="text-lg font-bold text-white">Archivio Certificati Medici</h3>
+                <input type="text" id="search-certificati" oninput="renderCertificati()" placeholder="🔍 Cerca atleta..." class="bg-slate-900 p-2.5 px-4 rounded-xl border border-white/10 text-white text-sm outline-none focus:border-amber-400 w-full md:w-64">
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-slate-300">
+                    <thead class="bg-slate-900/80 text-xs uppercase text-slate-400 border-b border-white/10">
+                        <tr>
+                            <th class="p-3">Atleta</th>
+                            <th class="p-3">Tipo</th>
+                            <th class="p-3">Data Scadenza</th>
+                            <th class="p-3">Stato</th>
+                            <th class="p-3">Medico</th>
+                            <th class="p-3 text-right">Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lista-certificati" class="divide-y divide-white/5">
+                        <!-- Generato via Javascript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- SEZIONE 2: DOCUMENTI OBBLIGATORI ASD -->
+    <div id="tab-asd" class="space-y-8 hidden">
+        <!-- Form Caricamento Documento ASD -->
+        <div class="glass p-6 md:p-8 rounded-3xl border border-white/10 border-dashed border-blue-500/20">
+            <h2 class="text-xl font-bold text-blue-400 mb-6 flex items-center gap-2">
+                <span>🏛️</span> Inserisci Documentazione ASD (Statuto, Atto Costitutivo, ecc.)
+            </h2>
+            
+            <form id="form-asd-doc" onsubmit="salvaDocASD(event)" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1 uppercase">Tipologia Documento *</label>
+                    <select id="asd-doc-tipo" required class="w-full bg-slate-900 p-3 rounded-xl border border-white/10 text-white focus:border-blue-400 outline-none">
+                        <option value="Statuto">Statuto Sociale</option>
+                        <option value="Atto Costitutivo">Atto Costitutivo</option>
+                        <option value="Attribuzione Codice Fiscale / P.IVA">Attribuzione Codice Fiscale / P.IVA</option>
+                        <option value="Iscrizione Registro RASD / CONI">Iscrizione Registro RASD / CONI</option>
+                        <option value="Affiliazione FSN / EPS">Affiliazione FSN / EPS</option>
+                        <option value="Polizza Assicurativa">Polizza Assicurativa</option>
+                        <option value="Verbale Assemblea / Consiglio">Verbale Assemblea / Consiglio</option>
+                        <option value="Riconoscimento Safeguarding">Nomina Responsabile Safeguarding</option>
+                        <option value="Altro Documento">Altro Documento Obbligatorio</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1 uppercase">Titolo / Descrizione Documento *</label>
+                    <input type="text" id="asd-doc-titolo" placeholder="Es. Statuto Registrato Agenzia Entrate 2024" required class="w-full bg-slate-900 p-3 rounded-xl border border-white/10 text-white focus:border-blue-400 outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1 uppercase">Data Scadenza / Rinnovo (Opzionale)</label>
+                    <input type="date" id="asd-doc-scadenza" class="w-full bg-slate-900 p-3 rounded-xl border border-white/10 text-white focus:border-blue-400 outline-none">
+                </div>
+
+                <div class="lg:col-span-2">
+                    <label class="block text-xs font-bold text-slate-400 mb-1 uppercase">File Documento (PDF o Immagine Scansione) *</label>
+                    <input type="file" id="asd-doc-file" accept="image/*,.pdf" required class="w-full bg-slate-900 p-2.5 rounded-xl border border-white/10 text-slate-300 text-sm file:mr-4 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:bg-blue-600 file:text-white file:font-bold hover:file:bg-blue-500 cursor-pointer">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1 uppercase">Note Aggiuntive</label>
+                    <input type="text" id="asd-doc-note" placeholder="Es. Protocollo n. 1234/2024" class="w-full bg-slate-900 p-3 rounded-xl border border-white/10 text-white focus:border-blue-400 outline-none">
+                </div>
+
+                <div class="md:col-span-2 lg:col-span-3 flex justify-end mt-2">
+                    <button type="submit" class="w-full md:w-auto bg-blue-600 hover:bg-blue-500 text-white font-black px-8 py-3 rounded-xl transition shadow-lg">
+                        📂 SALVA DOCUMENTO ASD
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Registro Documentazione ASD -->
+        <div class="glass p-6 md:p-8 rounded-3xl border border-white/10">
+            <h3 class="text-lg font-bold text-white mb-6">Registro Documentazione Obbligatoria ASD</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="grid-asd-docs">
+                <!-- Card documento ASD caricate JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal per Visualizzazione Documenti / Anteprima -->
+    <div id="modal-preview" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4 z-50">
+        <div class="glass p-6 rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col border border-white/20">
+            <div class="flex justify-between items-center pb-4 border-b border-white/10 mb-4">
+                <h3 id="modal-title" class="text-lg font-bold text-amber-400">Anteprima Documento</h3>
+                <button onclick="chiudiModal()" class="text-slate-400 hover:text-white font-bold text-xl px-2">✕</button>
+            </div>
+            <div id="modal-body" class="flex-1 overflow-auto bg-slate-950 rounded-xl p-2 flex items-center justify-center min-h-[300px]">
+                <!-- Contenuto anteprima -->
+            </div>
+            <div class="pt-4 border-t border-white/10 mt-4 flex justify-between items-center">
+                <a id="modal-download" download="documento" href="#" class="bg-amber-500 hover:bg-amber-400 text-black font-bold px-5 py-2 rounded-xl text-sm transition">⬇️ Scarica File</a>
+                <button onclick="chiudiModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-5 py-2 rounded-xl text-sm transition">Chiudi</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let tesseratiList = [];
+        let certificatiList = [];
+        let asdDocsList = [];
+
+        function init() {
+            // Carica configurazione ASD
+            const config = JSON.parse(localStorage.getItem('asd_config')) || {};
+            if (config.nome) document.getElementById('app-title').innerText = config.nome;
+            if (config.logo) {
+                const logoBox = document.getElementById('app-logo');
+                logoBox.innerHTML = `<img src="${config.logo}" class="w-full h-full object-cover">`;
+                logoBox.classList.remove('bg-orange-500');
+            }
+
+            // Carica Dati da LocalStorage
+            tesseratiList = JSON.parse(localStorage.getItem('asd_soci')) || [];
+            certificatiList = JSON.parse(localStorage.getItem('asd_certificati')) || [];
+            asdDocsList = JSON.parse(localStorage.getItem('asd_documenti_ufficiali')) || [];
+
+            popolaSelectTesserati();
+            renderCertificati();
+            renderDocsASD();
+            aggiornaStatistiche();
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active', 'border-amber-400', 'text-amber-400');
+                btn.classList.add('text-slate-400');
+            });
+            
+            document.getElementById('tab-certificati').classList.add('hidden');
+            document.getElementById('tab-asd').classList.add('hidden');
+
+            if (tab === 'certificati') {
+                document.getElementById('tab-certificati').classList.remove('hidden');
+                document.getElementById('tab-btn-certificati').classList.add('active');
+            } else {
+                document.getElementById('tab-asd').classList.remove('hidden');
+                document.getElementById('tab-btn-asd').classList.add('active');
+            }
+        }
+
+        function popolaSelectTesserati() {
+            const select = document.getElementById('cert-socio');
+            select.innerHTML = '<option value="">-- Seleziona Tesserato --</option>';
+            
+            tesseratiList.sort((a, b) => {
+                const nomeA = (a.nome || a.cognome || '').toLowerCase();
+                const nomeB = (b.nome || b.cognome || '').toLowerCase();
+                return nomeA.localeCompare(nomeB);
+            }).forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.id || `${s.nome}_${s.cognome}`;
+                opt.textContent = `${s.cognome || ''} ${s.nome || ''}`.trim() || 'Senza Nome';
+                select.appendChild(opt);
+            });
+        }
+
+        function convertFileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        async function salvaCertificato(e) {
+            e.preventDefault();
+            const socioId = document.getElementById('cert-socio').value;
+            const tipo = document.getElementById('cert-tipo').value;
+            const scadenza = document.getElementById('cert-scadenza').value;
+            const medico = document.getElementById('cert-medico').value;
+            const fileInput = document.getElementById('cert-file');
+
+            if (!socioId || !scadenza || !fileInput.files[0]) {
+                alert("Compila tutti i campi obbligatori.");
+                return;
+            }
+
+            const socio = tesseratiList.find(s => (s.id || `${s.nome}_${s.cognome}`) === socioId);
+            const nomeSocio = socio ? `${socio.cognome || ''} ${socio.nome || ''}`.trim() : socioId;
+
+            const base64File = await convertFileToBase64(fileInput.files[0]);
+
+            const nuovoCert = {
+                id: 'cert_' + Date.now(),
+                socioId: socioId,
+                nomeSocio: nomeSocio,
+                tipo: tipo,
+                scadenza: scadenza,
+                medico: medico,
+                fileName: fileInput.files[0].name,
+                fileData: base64File,
+                dataCaricamento: new Date().toISOString().split('T')[0]
+            };
+
+            certificatiList.unshift(nuovoCert);
+            localStorage.setItem('asd_certificati', JSON.stringify(certificatiList));
+            
+            document.getElementById('form-certificato').reset();
+            renderCertificati();
+            aggiornaStatistiche();
+            alert("Certificato medico caricato con successo!");
+        }
+
+        function calcolaStatoCertificato(scadenzaStr) {
+            const oggi = new Date();
+            oggi.setHours(0, 0, 0, 0);
+            const scad = new Date(scadenzaStr);
+            const diffGiorni = Math.ceil((scad - oggi) / (1000 * 60 * 60 * 24));
+
+            if (diffGiorni < 0) {
+                return { testo: 'SCADUTO', cologBg: 'bg-rose-500/20 text-rose-400 border-rose-500/40' };
+            } else if (diffGiorni <= 30) {
+                return { testo: `IN SCADENZA (${diffGiorni} gg)`, cologBg: 'bg-amber-500/20 text-amber-400 border-amber-500/40' };
+            } else {
+                return { testo: 'VALIDO', cologBg: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' };
+            }
+        }
+
+        function renderCertificati() {
+            const tbody = document.getElementById('lista-certificati');
+            const search = document.getElementById('search-certificati').value.toLowerCase();
+            tbody.innerHTML = '';
+
+            const filtrati = certificatiList.filter(c => c.nomeSocio.toLowerCase().includes(search));
+
+            if (filtrati.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-500">Nessun certificato in archivio.</td></tr>`;
+                return;
+            }
+
+            filtrati.forEach(c => {
+                const stato = calcolaStatoCertificato(c.scadenza);
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-800/40 transition";
+                tr.innerHTML = `
+                    <td class="p-3 font-bold text-white">${c.nomeSocio}</td>
+                    <td class="p-3"><span class="bg-slate-800 text-slate-300 px-2.5 py-1 rounded-lg text-xs border border-white/10">${c.tipo}</span></td>
+                    <td class="p-3 font-mono">${formattiData(c.scadenza)}</td>
+                    <td class="p-3"><span class="px-2.5 py-1 rounded-full text-[10px] font-bold border ${stato.cologBg}">${stato.testo}</span></td>
+                    <td class="p-3 text-slate-400 text-xs">${c.medico || '-'}</td>
+                    <td class="p-3 text-right space-x-2">
+                        <button onclick="apriAnteprima('${c.id}', 'cert')" class="bg-slate-800 hover:bg-slate-700 text-amber-400 p-2 rounded-lg text-xs font-bold transition">👁️ Vedi</button>
+                        <button onclick="eliminaCertificato('${c.id}')" class="bg-rose-950/60 hover:bg-rose-900 text-rose-400 p-2 rounded-lg text-xs font-bold transition">🗑️</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function salvaDocASD(e) {
+            e.preventDefault();
+            const tipo = document.getElementById('asd-doc-tipo').value;
+            const titolo = document.getElementById('asd-doc-titolo').value;
+            const scadenza = document.getElementById('asd-doc-scadenza').value;
+            const note = document.getElementById('asd-doc-note').value;
+            const fileInput = document.getElementById('asd-doc-file');
+
+            if (!titolo || !fileInput.files[0]) {
+                alert("Inserisci titolo e seleziona un file.");
+                return;
+            }
+
+            const base64File = await convertFileToBase64(fileInput.files[0]);
+
+            const nuovoDoc = {
+                id: 'doc_asd_' + Date.now(),
+                tipo: tipo,
+                titolo: titolo,
+                scadenza: scadenza || null,
+                note: note || '',
+                fileName: fileInput.files[0].name,
+                fileData: base64File,
+                dataCaricamento: new Date().toISOString().split('T')[0]
+            };
+
+            asdDocsList.unshift(nuovoDoc);
+            localStorage.setItem('asd_documenti_ufficiali', JSON.stringify(asdDocsList));
+
+            document.getElementById('form-asd-doc').reset();
+            renderDocsASD();
+            aggiornaStatistiche();
+            alert("Documento ASD registrato con successo!");
+        }
+
+        function renderDocsASD() {
+            const container = document.getElementById('grid-asd-docs');
+            container.innerHTML = '';
+
+            if (asdDocsList.length === 0) {
+                container.innerHTML = `<div class="col-span-full p-8 text-center text-slate-500 glass rounded-2xl">Nessun documento societario salvato. Carica Statuto, Atto Costitutivo o altre licenze.</div>`;
+                return;
+            }
+
+            asdDocsList.forEach(d => {
+                const isPdf = d.fileData && d.fileData.startsWith('data:application/pdf');
+                const card = document.createElement('div');
+                card.className = "glass p-6 rounded-2xl flex flex-col justify-between border border-white/10 card-hover";
+                
+                let scadenzaBadge = '';
+                if (d.scadenza) {
+                    const st = calcolaStatoCertificato(d.scadenza);
+                    scadenzaBadge = `<div class="mt-2 text-xs font-bold text-slate-400">Scadenza: <span class="px-2 py-0.5 rounded text-[10px] border ${st.cologBg}">${formattiData(d.scadenza)}</span></div>`;
+                }
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[10px] uppercase font-black px-2.5 py-1 rounded-md">${d.tipo}</span>
+                            <span class="text-[10px] text-slate-500">${d.dataCaricamento ? formattiData(d.dataCaricamento) : ''}</span>
+                        </div>
+                        <h4 class="font-bold text-white text-base mb-1">${d.titolo}</h4>
+                        <p class="text-xs text-slate-400 line-clamp-2">${d.note || 'Nessuna nota allegata.'}</p>
+                        ${scadenzaBadge}
+                    </div>
+                    
+                    <div class="mt-6 pt-4 border-t border-white/10 flex justify-between items-center">
+                        <span class="text-xs text-slate-500 truncate max-w-[150px]">${isPdf ? '📄 PDF' : '🖼️ Immagine'}</span>
+                        <div class="space-x-2">
+                            <button onclick="apriAnteprima('${d.id}', 'asd')" class="bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 px-3 py-1.5 rounded-lg text-xs font-bold transition">👁️ Visualizza</button>
+                            <button onclick="eliminaDocASD('${d.id}')" class="bg-rose-950/60 hover:bg-rose-900 text-rose-400 px-3 py-1.5 rounded-lg text-xs font-bold transition">🗑️</button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function apriAnteprima(id, tipo) {
+            let doc = null;
+            if (tipo === 'cert') {
+                doc = certificatiList.find(c => c.id === id);
+            } else {
+                doc = asdDocsList.find(d => d.id === id);
+            }
+
+            if (!doc) return;
+
+            const modal = document.getElementById('modal-preview');
+            const modalTitle = document.getElementById('modal-title');
+            const modalBody = document.getElementById('modal-body');
+            const modalDownload = document.getElementById('modal-download');
+
+            modalTitle.innerText = doc.titolo || `Certificato - ${doc.nomeSocio}`;
+            modalDownload.href = doc.fileData;
+            modalDownload.download = doc.fileName || 'documento';
+
+            modalBody.innerHTML = '';
+            if (doc.fileData.startsWith('data:application/pdf')) {
+                modalBody.innerHTML = `<iframe src="${doc.fileData}" class="w-full h-[550px] rounded-lg border-0"></iframe>`;
+            } else {
+                modalBody.innerHTML = `<img src="${doc.fileData}" class="max-h-[550px] object-contain rounded-lg">`;
+            }
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function chiudiModal() {
+            const modal = document.getElementById('modal-preview');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function eliminaCertificato(id) {
+            if (confirm("Sei sicuro di voler eliminare questo certificato medico?")) {
+                certificatiList = certificatiList.filter(c => c.id !== id);
+                localStorage.setItem('asd_certificati', JSON.stringify(certificatiList));
+                renderCertificati();
+                aggiornaStatistiche();
+            }
+        }
+
+        function eliminaDocASD(id) {
+            if (confirm("Sei sicuro di voler eliminare questo documento ASD?")) {
+                asdDocsList = asdDocsList.filter(d => d.id !== id);
+                localStorage.setItem('asd_documenti_ufficiali', JSON.stringify(asdDocsList));
+                renderDocsASD();
+                aggiornaStatistiche();
+            }
+        }
+
+        function aggiornaStatistiche() {
+            document.getElementById('stat-totale').innerText = certificatiList.length + asdDocsList.length;
+            document.getElementById('stat-asd').innerText = asdDocsList.length;
+
+            let validi = 0;
+            let scaduti = 0;
+
+            const oggi = new Date();
+            oggi.setHours(0, 0, 0, 0);
+
+            certificatiList.forEach(c => {
+                const scad = new Date(c.scadenza);
+                if (scad >= oggi) {
+                    validi++;
+                } else {
+                    scaduti++;
+                }
+            });
+
+            document.getElementById('stat-cert-validi').innerText = validi;
+            document.getElementById('stat-cert-scaduti').innerText = scaduti;
+        }
+
+        function formattiData(strData) {
+            if (!strData) return '-';
+            const parti = strData.split('-');
+            if (parti.length !== 3) return strData;
+            return `${parti[2]}/${parti[1]}/${parti[0]}`;
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
