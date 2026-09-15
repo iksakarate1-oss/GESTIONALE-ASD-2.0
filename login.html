@@ -28,7 +28,7 @@
             "MASTER-IKSA-2026": { nome: "Amministratore Master", ruolo: "master", attivo: true, scadenza: "2099-12-31" },
             "IKSA-PALERMO-1":   { nome: "Sede Palermo 1", ruolo: "standard", attivo: true, scadenza: "2026-12-31" },
             "IKSA-PALERMO-2":   { nome: "Sede Palermo 2", ruolo: "standard", attivo: false, scadenza: "2026-08-30" },
-            ": { nome: "A.S.D. D'AMATO", ruolo: "standard", attivo: true, scadenza: "2026-09-30" }
+            "GIUSEPPE DAMATO":  { nome: "A.S.D. D'AMATO", ruolo: "standard", attivo: false, scadenza: "2026-09-30" }
         };
 
         function isLicenzaScaduta(dataScadenzaStr) {
@@ -44,7 +44,7 @@
             const errorMsg = document.getElementById('error-msg');
             const utenteInfo = DATABASE_UTENTI[codice];
 
-            if (!utenteInfo || !utenteInfo.attivo) {
+            if (!utenteInfo || utenteInfo.attivo !== true) {
                 errorMsg.innerText = "ACCESSO REVOCATO O CODICE NON VALIDO.";
                 return;
             }
@@ -54,13 +54,13 @@
                 return;
             }
 
-            // Salva in entrambe le memorie per massima compatibilità con i file locali
+            // Salva sessione in entrambe le memorie locali
             localStorage.setItem('asd_utente_corrente', codice);
             localStorage.setItem('asd_sessione_v2', 'true');
             sessionStorage.setItem('asd_utente_corrente', codice);
             sessionStorage.setItem('asd_sessione_v2', 'true');
             
-            // Reindirizza passando l'utente anche via URL per sicurezza
+            // Reindirizza mantenendo l'utente attivo
             window.location.href = "index.html?user=" + encodeURIComponent(codice);
         }
     </script>
