@@ -160,8 +160,9 @@
         const UTENTI_BLOCCATI = ["IKSA2026", "IKSA-PALERMO-2"];
 
         function effettuaLogoutForzato(messaggio) {
-            localStorage.removeItem('asd_sessione_attiva');
+            localStorage.removeItem('asd_sessione_v2');
             localStorage.removeItem('asd_utente_corrente');
+            localStorage.removeItem('asd_sessione_attiva'); // Rimuove anche la vecchia chiave salvata
             document.getElementById('dashboard-container').classList.add('hidden');
             document.getElementById('login-container').classList.remove('hidden');
             if (messaggio) {
@@ -170,10 +171,12 @@
         }
 
         function init() {
-            const utenteCorrente = (localStorage.getItem('asd_utente_corrente') || '').trim().toUpperCase();
-            const sessioneAttiva = localStorage.getItem('asd_sessione_attiva');
+            // Cancella subito ogni traccia delle vecchie sessioni bloccate
+            localStorage.removeItem('asd_sessione_attiva');
 
-            // CONTROLLO DI SICUREZZA MANDATORIO
+            const utenteCorrente = (localStorage.getItem('asd_utente_corrente') || '').trim().toUpperCase();
+            const sessioneAttiva = localStorage.getItem('asd_sessione_v2');
+
             if (UTENTI_BLOCCATI.includes(utenteCorrente) || !utenteCorrente || sessioneAttiva !== "true" || !DATABASE_UTENTI[utenteCorrente] || DATABASE_UTENTI[utenteCorrente].attivo !== true) {
                 effettuaLogoutForzato("ACCESSO REVOCATO: L'utenza è stata disattivata.");
                 return;
@@ -206,7 +209,7 @@
 
             errorMsg.innerText = "";
             localStorage.setItem('asd_utente_corrente', codice);
-            localStorage.setItem('asd_sessione_attiva', 'true');
+            localStorage.setItem('asd_sessione_v2', 'true');
             mostraDashboard();
         }
 
