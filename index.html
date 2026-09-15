@@ -3,8 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Reindirizzamento automatico verso Vercel -->
-    <meta http-equiv="refresh" content="0; url=https://gestionale-asd-2-0.vercel.app">
     <!-- Blocco della cache per forzare il download della versione più recente -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
@@ -163,7 +161,7 @@
             "MASTER-IKSA-2026": { nome: "Amministratore Master", ruolo: "master", attivo: true, scadenza: "2099-12-31" },
             "IKSA-PALERMO-1":   { nome: "Sede Palermo 1", ruolo: "standard", attivo: true, scadenza: "2026-12-31" },
             "IKSA-PALERMO-2":   { nome: "Sede Palermo 2", ruolo: "standard", attivo: false, scadenza: "2026-08-30" }, // BLOCCATO
-            "IKSA2026":         { nome: "ASD IKSA Standard", ruolo: "standard", attivo: false, scadenza: "2026-12-31" }
+            "IKSA2026":         { nome: "ASD IKSA Standard", ruolo: "standard", attivo: false, scadenza: "2026-12-31" } // BLOCCATO
         };
 
         function init() {
@@ -172,7 +170,7 @@
 
             // Controllo validità dell'utente memorizzato
             if (!utenteCorrente || sessioneAttiva !== "true" || !DATABASE_UTENTI[utenteCorrente] || !DATABASE_UTENTI[utenteCorrente].attivo) {
-                effettuaLogoutForzato();
+                effettuaLogoutForzato("ACCESSO REVOCATO: L'utenza è stata disattivata o non esiste.");
                 return;
             }
 
